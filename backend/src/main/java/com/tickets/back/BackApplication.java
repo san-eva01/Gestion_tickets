@@ -18,7 +18,7 @@ public class BackApplication {
 		return new WebMvcConfigurer() {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
-				registry.addMapping("/api/**") // Aplica a todas las rutas
+				registry.addMapping("api/**") // Aplica a todas las rutas
 						.allowedOrigins("*") // Permite cualquier origen (en producción usa dominios específicos)
 						.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS") // Métodos permitidos
 						.allowedHeaders("*"); // Headers permitidos
