@@ -132,21 +132,7 @@ class UserManager {
         }
     }
 
-    async deleteUser(id) {
-        try {
-            const response = await fetch(`${this.apiUrl}/${id}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (!response.ok) throw new Error(await response.text());
-            
-            this.showNotification('Usuario eliminado', 'success');
-            this.loadUsers();
-        } catch (error) {
-            this.showNotification(error.message, 'error');
-        }
-    }
+
 
     showNotification(message, type) {
         const alertContainer = document.getElementById('alertContainer');
@@ -174,7 +160,6 @@ let userManager;
 document.addEventListener('DOMContentLoaded', () => {
     userManager = new UserManager();
 });
-
 
 
 
