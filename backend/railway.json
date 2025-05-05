@@ -1,21 +1,19 @@
 {
     "builds": [
-        {
-            "src": "pom.xml",
-            "use": "@railway/java",
-            "config": {
-                "startCommand": "java -Dserver.port=$PORT -jar target/*.jar"
-            }
+      {
+        "src": "pom.xml",
+        "use": "@railway/java",
+        "config": {
+          "startCommand": "java -Dserver.port=$PORT -Dserver.address=0.0.0.0 -jar target/*.jar"
         }
+      }
     ],
     "deploy": {
-        "startTimeout": 120000,
-        "healthcheckPath": "/actuator/health"
-    },
-    "plugins": [
-        {
-            "name": "PostgreSQL",
-            "type": "postgresql"
-        }
-    ]
-}
+      "startTimeout": 180000,
+      "healthcheckPath": "/api/health",
+      "restartPolicy": {
+        "type": "on-failure",
+        "maxRetries": 3
+      }
+    }
+  }
