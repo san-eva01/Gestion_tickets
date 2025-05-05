@@ -132,6 +132,41 @@ class UserManager {
         }
     }
 
+    async deleteUser(id) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.apiUrl}?id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            try {
+                const result = JSON.parse(responseText);
+                if (result.success) {
+                    this.showNotification('Usuario eliminado con éxito', 'success');
+                    this.loadUsers();
+                } else {
+                    throw new Error(result.message || 'Error al eliminar el usuario');
+                }
+            } catch (parseError) {
+                console.error('Error parsing JSON:', responseText);
+                throw new Error('Error al procesar la respuesta del servidor');
+            }
+        } catch (error) {
+            this.showNotification('Error al eliminar el usuario: ' + error.message, 'error');
+        }
+    }
+
 
 
     showNotification(message, type) {
