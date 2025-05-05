@@ -6,18 +6,43 @@ class UserManager {
         this.loadUsers();
     }
 
+
+    initializeEventListeners() {
+        document.getElementById('btnNewUser').addEventListener('click', () => {
+            this.showUserModal();
+        });
+
+        document.getElementById('userForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveUser();
+        });
+    }
+
     async loadUsers() {
         try {
-            const response = await fetch(this.apiUrl);
+            const response = await fetch(this.apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
             
             if (!response.ok) {
-                throw new Error('Error HTTP! estado: ${response.status}');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            // Directly use the array returned by the API
-            const users = await response.json();
-            this.displayUsers(users);
-            
+            const responseText = await response.text();
+            try {
+                const result = JSON.parse(responseText);
+                if (result.success) {
+                    this.displayUsers(result.data);
+                } else {
+                    throw new Error(result.message || 'Error al cargar usuarios');
+                }
+            } catch (parseError) {
+                console.error('Response text:', responseText);
+                throw new Error('Error al procesar la respuesta del servidor');
+            }
         } catch (error) {
             this.showNotification('Error al cargar usuarios: ' + error.message, 'error');
         }
@@ -30,16 +55,16 @@ class UserManager {
         users.forEach(user => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${user.idUsuario}</td>
+                <td>${user.id_usuario}</td>
                 <td>${this.escapeHtml(user.nombre)}</td>
                 <td>${this.escapeHtml(user.email)}</td>
                 <td><span class="badge ${user.rol === 'Cliente' ? 'bg-primary' : 'bg-success'}">${user.rol}</span></td>
-                <td>${user.fechaCreacion ? new Date(user.fechaCreacion).toLocaleString() : 'N/A'}</td>
+                <td>${new Date(user.fecha_creacion).toLocaleString()}</td>
                 <td>
-                    <button class="btn btn-sm btn-warning me-2" onclick="userManager.editUser(${user.idUsuario})">
+                    <button class="btn btn-sm btn-warning me-2" onclick="userManager.editUser(${user.id_usuario})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="userManager.deleteUser(${user.idUsuario})">
+                    <button class="btn btn-sm btn-danger" onclick="userManager.deleteUser(${user.id_usuario})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -48,21 +73,26 @@ class UserManager {
         });
     }
 
-    async editUser(id) {
-        try {
-            const response = await fetch('${this.apiUrl}/${id}');
-            
-            if (!response.ok) {
-                throw new Error('Error HTTP! estado: ${response.status}');
-            }
-            
-            // Directly use the user object from the API
-            const user = await response.json();
-            this.showUserModal(user);
-            
-        } catch (error) {
-            this.showNotification('Error al cargar el usuario: ' + error.message, 'error');
+    showUserModal(userData = null) {
+        const modal = document.getElementById('userModal');
+        const form = document.getElementById('userForm');
+        form.reset();
+
+        if (userData) {
+            document.getElementById('userId').value = userData.id_usuario;
+            document.getElementById('nombre').value = userData.nombre;
+            document.getElementById('email').value = userData.email;
+            document.getElementById('rol').value = userData.rol;
+            document.getElementById('modalTitle').textContent = 'Editar Usuario';
+            document.getElementById('password').required = false;
+        } else {
+            document.getElementById('userId').value = '';
+            document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('password').required = true;
         }
+
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
     }
 
     async saveUser() {
@@ -74,52 +104,113 @@ class UserManager {
             email: document.getElementById('email').value,
             rol: document.getElementById('rol').value
         };
-    
+
         const password = document.getElementById('password').value;
         if (password) {
-            userData.contraseña = password; // Match this to your entity field
+            userData.contrasena = password;
         }
-    
+
         try {
-            let response;
-            if (userId) {
-                response = await fetch('${this.apiUrl}/${userId}', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(userData)
-                });
-            } else {
-                response = await fetch(this.apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(userData)
-                });
+            const method = userId ? 'PUT' : 'POST';
+            const url = userId ? `${this.apiUrl}?id=${userId}` : this.apiUrl;
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            const responseText = await response.text();
+            console.log('Response:', responseText); 
+
+            try {
+                const result = JSON.parse(responseText);
+                if (result.success) {
+                    this.showNotification(
+                        userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito',
+                        'success'
+                    );
+                    bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                    this.loadUsers();
+                } else {
+                    throw new Error(result.message || 'Error en la operación');
+                }
+            } catch (parseError) {
+                console.error('Error parsing JSON:', responseText);
+                throw new Error('Error al procesar la respuesta del servidor');
             }
-    
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error HTTP! estado: ${response.status}');
-            }
-    
-            const result = await response.json();
-            
-            this.showNotification(
-                userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito',
-                'success'
-            );
-            
-            bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
-            this.loadUsers();
         } catch (error) {
             this.showNotification('Error: ' + error.message, 'error');
         }
     }
 
+    async editUser(id) {
+        try {
+            const response = await fetch(`${this.apiUrl}?id=${id}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            try {
+                const result = JSON.parse(responseText);
+                if (result.success) {
+                    this.showUserModal(result.data);
+                } else {
+                    throw new Error(result.message || 'Error al cargar el usuario');
+                }
+            } catch (parseError) {
+                console.error('Error parsing JSON:', responseText);
+                throw new Error('Error al procesar la respuesta del servidor');
+            }
+        } catch (error) {
+            this.showNotification('Error al cargar el usuario: ' + error.message, 'error');
+        }
+    }
+
+    async deleteUser(id) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.apiUrl}?id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            try {
+                const result = JSON.parse(responseText);
+                if (result.success) {
+                    this.showNotification('Usuario eliminado con éxito', 'success');
+                    this.loadUsers();
+                } else {
+                    throw new Error(result.message || 'Error al eliminar el usuario');
+                }
+            } catch (parseError) {
+                console.error('Error parsing JSON:', responseText);
+                throw new Error('Error al procesar la respuesta del servidor');
+            }
+        } catch (error) {
+            this.showNotification('Error al eliminar el usuario: ' + error.message, 'error');
+        }
+    }
 
     showNotification(message, type) {
         const alertContainer = document.getElementById('alertContainer');
@@ -147,7 +238,3 @@ let userManager;
 document.addEventListener('DOMContentLoaded', () => {
     userManager = new UserManager();
 });
-
-
-
-
