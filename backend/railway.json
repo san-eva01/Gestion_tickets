@@ -1,0 +1,15 @@
+{
+    "builds": [
+      {
+        "src": "pom.xml",
+        "use": "@railway/java",
+        "config": {
+          "startCommand": "java -Dserver.port=$PORT -jar target/*.jar"
+        }
+      }
+    ],
+    "deploy": {
+      "startTimeout": 120000,
+      "healthcheckPath": "/actuator/health"
+    }
+  }
