@@ -1,4 +1,4 @@
-package com.tickets.back.controller;
+/*package com.tickets.back.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,4 +9,4 @@ public class PaginaPrincipalController {
     public String inicio() {
         return "redirect:/index.html";
     }
-}
+}*/
