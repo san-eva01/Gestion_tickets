@@ -3,109 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion de Usuarios</title>
+    <title>Iniciar Sesión - Sistema de Gestión de Tickets</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="./css/usuarios.css" rel="stylesheet">
+    <link href="css/login.css" rel="stylesheet">
 </head>
 <body>
-    <div class="page-wrapper">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-user-cog"></i> Admin Panel
-            </div>
-            <ul class="sidebar-menu">
-                <li class="active"><i class="fas fa-users"></i> Usuarios</li>
-                <li><i class="fas fa-cogs"></i> Configuracion</li>
-                <li><i class="fas fa-sign-out-alt"></i> Cerrar Sesion</li>
-            </ul>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="content-header">
-                <h1 class="page-title">Gestion de Usuarios</h1>
-                <button id="btnNewUser" class="btn-new">
-                    <i class="fas fa-plus"></i> Nuevo Usuario
-                </button>
-            </div>
-
-            <!-- Search Bar -->
-            <div class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="text" class="search-input" placeholder="Buscar usuario...">
-            </div>
-
-            <!-- Card Container con tabla -->
-            <div class="card-container">
-                <div id="alertContainer"></div>
-
-                <div class="table-wrapper">
-                    <table class="custom-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Email</th>
-                                <th>Rol</th>
-                                <th>Fecha Creacion</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <!-- Las filas se agregan dinamicamente -->
-                        </tbody>
-                    </table>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-layer-group"></i>
+                    <h1>TaskFlow</h1>
                 </div>
+                <p class="subtitle">Sistema de Gestión de Tickets</p>
             </div>
-        </main>
-    </div>
-
-    <!-- Modal para formulario -->
-    <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Nuevo Usuario</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <form id="userForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="userId">
-                        <div class="form-group">
-                            <label for="nombre">Nombre</label>
-                            <input type="text" id="nombre" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Contraseña</label>
-                            <input type="password" id="password">
-                            <small>Dejar en blanco para mantener la contraseña actual</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="rol">Rol</label>
-                            <select id="rol" required>
-                                <option value="Creativo">Creativo</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Editor">Editor</option>
-                            </select>
+            
+            <div class="login-body">
+                <h2>Iniciar Sesión</h2>
+                <form id="loginForm">
+                    <div class="alert alert-danger" id="loginError" style="display: none;">
+                        Usuario o contraseña incorrectos
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="email" required placeholder="ejemplo@agencia.com">
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn-primary">Guardar</button>
+                    
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" required placeholder="************">
+                            <button type="button" class="toggle-password">
+                                <i class="fas fa-eye-slash"></i>
+                            </button>
+                        </div>
                     </div>
+                    
+                    <div class="form-options">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">Recordarme</label>
+                        </div>
+                        <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn-login">
+                        Iniciar Sesión <i class="fas fa-arrow-right"></i>
+                    </button>
                 </form>
+            </div>
+            
+            <div class="login-footer">
+                <p>© 2023 TaskFlow - Todos los derechos reservados</p>
+            </div>
+        </div>
+        
+        <div class="login-image">
+            <div class="overlay"></div>
+            <div class="image-content">
+                <h2>Bienvenido al Sistema de Gestión de Tickets</h2>
+                <p>Herramienta especializada para la gestión eficiente del proceso creativo</p>
+                <div class="features">
+                    <div class="feature">
+                        <i class="fas fa-tasks"></i>
+                        <span>Seguimiento de tickets</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-users"></i>
+                        <span>Gestión de usuarios y roles</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Informes y métricas detallados</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../js/users.js"></script>
+    <script src="js/login.js"></script>
 </body>
 </html>
