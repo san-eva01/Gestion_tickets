@@ -52,6 +52,7 @@ public class HealthCheckController {
     // Add a root endpoint for basic connectivity testing
     @GetMapping("/")
     public String root() {
-        return "Tickets API is running. Access /health for more details.";
+        return "redirect:/index.html";
+        //return "Tickets API is running. Access /health for more details.";
     }
 }
