@@ -19,7 +19,7 @@ public class HealthCheckController {
     @Autowired
     private Environment env;
 
-    @GetMapping("/health")
+    @GetMapping("/api/health")
     public Map<String, Object> healthCheck() {
         Map<String, Object> status = new HashMap<>();
         status.put("status", "UP");
