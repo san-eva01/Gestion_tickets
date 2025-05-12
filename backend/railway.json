@@ -1,7 +1,7 @@
 {
     "builds": [
       {
-        "src": "backend/pom.xml",
+        "src": "pom.xml",
         "use": "@railway/java",
         "config": {
           "startCommand": "java -Dserver.port=$PORT -Dserver.address=0.0.0.0 -jar target/*.jar"
