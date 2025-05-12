@@ -149,56 +149,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function handleUserSubmit(e) {
         e.preventDefault();
-
+    
         const userId = document.getElementById('userId').value;
+        const password = document.getElementById('password').value.trim();
+        
+        // Validar que la contraseña no esté vacía
+        if (!password) {
+            showAlert('La contraseña es obligatoria', 'warning');
+            return;
+        }
+    
         const userData = {
             nombre: document.getElementById('nombre').value.trim(),
             email: document.getElementById('email').value.trim(),
-            rol: document.getElementById('rol').value
+            rol: document.getElementById('rol').value,
+            contraseña: password
         };
-
-        const password = document.getElementById('password').value;
-        if (password) {
-            userData.contrasena = password;
-        }
-
-        // Validación básica
+    
+        // Validación de campos requeridos
         if (!userData.nombre || !userData.email || !userData.rol) {
             showAlert('Por favor complete todos los campos requeridos', 'warning');
             return;
         }
-
+    
         try {
             let response;
             if (userId) {
-                // Actualizar usuario existente
+                // Actualizar usuario existente (siempre con contraseña)
                 response = await fetch(`${API_BASE_URL}/${userId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(userData)
                 });
             } else {
-                // Crear nuevo usuario
+                // Crear nuevo usuario (siempre con contraseña)
                 response = await fetch(API_BASE_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(userData)
                 });
             }
-
+    
             const result = await handleApiResponse(response);
-            
             showAlert(userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito', 'success');
             userModal.hide();
-            await fetchUsers(); // Recargar la lista de usuarios
+            await fetchUsers();
             searchInput.value = '';
         } catch (error) {
-            console.error('Error al guardar usuario:', error);
-            showAlert(error.message || 'Ocurrió un error al procesar la solicitud', 'danger');
+            console.error('Error:', error);
+            showAlert(error.message || 'Ocurrió un error', 'danger');
         }
     }
 
