@@ -20,7 +20,7 @@ public class BackApplication {
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/api/**") // Aplica a todas las rutas
 						.allowedOrigins("*") // Permite cualquier origen (en producción usa dominios específicos)
-						.allowedMethods("*") // Métodos permitidos
+						.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS") // Métodos permitidos
 						.allowedHeaders("*"); // Headers permitidos
 			}
 		};
