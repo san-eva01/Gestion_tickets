@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const response = await fetch(`${API_BASE_URL}/${userId}`);
                 const user = await handleApiResponse(response);
                 
-                document.getElementById('userId').value = user.id;
+                document.getElementById('id_usuario').value = user.id;
                 document.getElementById('nombre').value = user.nombre || '';
                 document.getElementById('email').value = user.email || '';
                 document.getElementById('rol').value = user.rol || '';
