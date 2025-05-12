@@ -1,57 +1,36 @@
 document.addEventListener('DOMContentLoaded', function () {
- 
     const usersTableBody = document.getElementById('usersTableBody');
     const userForm = document.getElementById('userForm');
     const userModal = new bootstrap.Modal(document.getElementById('userModal'));
     const searchInput = document.querySelector('.search-input');
 
-
-    let users = [
-        {
-            id_usuario: 1,
-            nombre: 'Ana Martínez',
-            email: 'ana.martinez@agencia.com',
-            rol: 'Admin',
-            fecha_creacion: '2023-01-15'
-        },
-        {
-            id_usuario: 2,
-            nombre: 'Carlos Ruiz',
-            email: 'carlos.ruiz@agencia.com',
-            rol: 'Creativo',
-            fecha_creacion: '2023-02-10'
-        },
-        {
-            id_usuario: 3,
-            nombre: 'María López',
-            email: 'maria.lopez@agencia.com',
-            rol: 'Creativo',
-            fecha_creacion: '2023-03-05'
-        },
-        {
-            id_usuario: 4,
-            nombre: 'Alberto Sánchez',
-            email: 'alberto.sanchez@agencia.com',
-            rol: 'Creativo',
-            fecha_creacion: '2023-04-20'
-        },
-        {
-            id_usuario: 5,
-            nombre: 'Laura Gómez',
-            email: 'laura.gomez@agencia.com',
-            rol: 'Creativo',
-            fecha_creacion: '2023-05-12'
-        }
-    ];
-
+    // URL base de tu API (ajusta según tu configuración)
+    const API_BASE_URL = 'https://gestiontickets-production.up.railway.app/api/usuarios';
+    
+    // Variable para almacenar los usuarios
+    let users = [];
 
     document.getElementById('btnNewUser').addEventListener('click', () => showUserModal());
     userForm.addEventListener('submit', handleUserSubmit);
     searchInput.addEventListener('input', filterUsers);
 
+    // Cargar usuarios al iniciar
+    fetchUsers();
 
-    renderUsers();
-
+    // Función para obtener usuarios desde el API
+    async function fetchUsers() {
+        try {
+            const response = await fetch(API_BASE_URL);
+            if (!response.ok) {
+                throw new Error('Error al obtener usuarios');
+            }
+            users = await response.json();
+            renderUsers();
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('Error al cargar usuarios', 'danger');
+        }
+    }
 
     function renderUsers(filteredUsers = null) {
         const usersToRender = filteredUsers || users;
@@ -70,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = document.createElement('tr');
             row.className = 'table-row';
             row.innerHTML = `
-                <td>${user.id_usuario}</td>
+                <td>${user.id}</td>
                 <td>
                     <div class="user-info">
                         <div class="user-avatar">${getUserInitials(user.nombre)}</div>
@@ -79,13 +58,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 </td>
                 <td>${user.email}</td>
                 <td><span class="role-badge ${getRolClass(user.rol)}">${user.rol}</span></td>
-                <td>${formatDate(user.fecha_creacion)}</td>
+                <td>${formatDate(user.fechaCreacion)}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-icon edit" onclick="editUser(${user.id_usuario})">
+                        <button class="btn-icon edit" onclick="editUser(${user.id})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon delete" onclick="deleteUser(${user.id_usuario})">
+                        <button class="btn-icon delete" onclick="deleteUser(${user.id})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -96,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getUserInitials(name) {
+        if (!name) return 'NN';
         return name
             .split(' ')
             .map(n => n[0])
@@ -105,27 +85,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getRolClass(rol) {
-        switch (rol) {
-            case 'Admin': return 'bg-purple text-white';
-            case 'Creativo': return 'bg-blue text-white';
-            case 'Editor': return 'bg-amber text-white';
+        if (!rol) return 'bg-gray-200';
+        switch (rol.toLowerCase()) {
+            case 'admin': return 'bg-purple text-white';
+            case 'creativo': return 'bg-blue text-white';
+            case 'editor': return 'bg-amber text-white';
             default: return 'bg-gray-200';
         }
     }
 
-    function showUserModal(userId = null) {
+    async function showUserModal(userId = null) {
         userForm.reset();
         document.getElementById('userId').value = '';
 
         if (userId) {
-            const user = users.find(u => u.id_usuario === userId);
-            if (user) {
-                document.getElementById('userId').value = user.id_usuario;
-                document.getElementById('nombre').value = user.nombre;
-                document.getElementById('email').value = user.email;
-                document.getElementById('rol').value = user.rol;
+            try {
+                const response = await fetch(`${API_BASE_URL}/${userId}`);
+                if (!response.ok) {
+                    throw new Error('Error al obtener usuario');
+                }
+                const user = await response.json();
+                
+                document.getElementById('userId').value = user.id;
+                document.getElementById('nombre').value = user.nombre || '';
+                document.getElementById('email').value = user.email || '';
+                document.getElementById('rol').value = user.rol || '';
                 document.getElementById('modalTitle').textContent = 'Editar Usuario';
                 document.getElementById('password').required = false;
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error al cargar usuario', 'danger');
             }
         } else {
             document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
@@ -135,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
         userModal.show();
     }
 
-    function handleUserSubmit(e) {
+    async function handleUserSubmit(e) {
         e.preventDefault();
 
         const userId = document.getElementById('userId').value;
@@ -150,72 +139,103 @@ document.addEventListener('DOMContentLoaded', function () {
             userData.contrasena = password;
         }
 
-        if (userId) {
-            const index = users.findIndex(u => u.id_usuario == userId);
-            if (index !== -1) {
-                users[index] = { ...users[index], ...userData };
-                showAlert('Usuario actualizado con exito', 'success');
+        try {
+            let response;
+            if (userId) {
+                // Actualizar usuario existente
+                response = await fetch(`${API_BASE_URL}/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+            } else {
+                // Crear nuevo usuario
+                response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
             }
-        } else {
-            const newId = users.length > 0 ? Math.max(...users.map(u => u.id_usuario)) + 1 : 1;
-            const newUser = {
-                id_usuario: newId,
-                ...userData,
-                fecha_creacion: new Date().toISOString().split('T')[0]
-            };
-            users.push(newUser);
-            showAlert('Usuario creado con exito', 'success');
-        }
 
-        userModal.hide();
-        renderUsers();
-        searchInput.value = ''; 
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al procesar la solicitud');
+            }
+
+            const result = await response.json();
+            showAlert(userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito', 'success');
+            userModal.hide();
+            await fetchUsers(); // Recargar la lista de usuarios
+            searchInput.value = '';
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert(error.message || 'Ocurrió un error', 'danger');
+        }
     }
 
     function filterUsers() {
         const searchTerm = searchInput.value?.toLowerCase().trim();
 
         if (!searchTerm) {
-            renderUsers(); 
+            renderUsers();
             return;
         }
 
         const filtered = users.filter(user =>
-            user.nombre.toLowerCase().includes(searchTerm) ||
-            user.email.toLowerCase().includes(searchTerm) ||
-            user.rol.toLowerCase().includes(searchTerm) ||
-            user.id_usuario.toString().includes(searchTerm)
+            (user.nombre && user.nombre.toLowerCase().includes(searchTerm)) ||
+            (user.email && user.email.toLowerCase().includes(searchTerm)) ||
+            (user.rol && user.rol.toLowerCase().includes(searchTerm)) ||
+            (user.id && user.id.toString().includes(searchTerm))
         );
 
         renderUsers(filtered);
     }
 
     function formatDate(dateStr) {
+        if (!dateStr) return 'N/A';
         return dateStr.split('-').reverse().join('/');
     }
 
     function showAlert(message, type = 'info') {
         const alertContainer = document.getElementById('alertContainer');
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type}`;
-        alertDiv.textContent = message;
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
         alertContainer.appendChild(alertDiv);
 
         setTimeout(() => {
             alertDiv.remove();
-        }, 3000);
+        }, 5000);
     }
-
 
     window.editUser = function (userId) {
         showUserModal(userId);
     };
 
-    window.deleteUser = function (userId) {
-        if (confirm('¿Esta seguro de que desea eliminar este usuario?')) {
-            users = users.filter(user => user.id_usuario !== userId);
-            renderUsers();
-            showAlert('Usuario eliminado con exito', 'success');
+    window.deleteUser = async function (userId) {
+        if (confirm('¿Está seguro de que desea eliminar este usuario?')) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al eliminar usuario');
+                }
+
+                showAlert('Usuario eliminado con éxito', 'success');
+                await fetchUsers(); // Recargar la lista de usuarios
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('No se pudo eliminar el usuario', 'danger');
+            }
         }
     };
 });
