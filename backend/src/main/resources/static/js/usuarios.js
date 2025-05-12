@@ -17,18 +17,40 @@ document.addEventListener('DOMContentLoaded', function () {
     // Cargar usuarios al iniciar
     fetchUsers();
 
+    // Función utilitaria para manejar respuestas API
+    async function handleApiResponse(response) {
+        const contentType = response.headers.get('content-type');
+        const responseText = await response.text();
+        
+        if (!response.ok) {
+            try {
+                // Intenta parsear como JSON si es posible
+                const errorData = JSON.parse(responseText);
+                throw new Error(errorData.message || errorData.error || 'Error en la solicitud');
+            } catch {
+                // Si no es JSON válido, usa el texto plano
+                throw new Error(responseText || 'Error en la solicitud');
+            }
+        }
+        
+        if (contentType && contentType.includes('application/json')) {
+            return JSON.parse(responseText);
+        }
+        
+        return responseText;
+    }
+
     // Función para obtener usuarios desde el API
     async function fetchUsers() {
         try {
             const response = await fetch(API_BASE_URL);
-            if (!response.ok) {
-                throw new Error('Error al obtener usuarios');
-            }
-            users = await response.json();
+            const data = await handleApiResponse(response);
+            
+            users = Array.isArray(data) ? data : [];
             renderUsers();
         } catch (error) {
-            console.error('Error:', error);
-            showAlert('Error al cargar usuarios', 'danger');
+            console.error('Error al obtener usuarios:', error);
+            showAlert(`Error al cargar usuarios: ${error.message}`, 'danger');
         }
     }
 
@@ -49,15 +71,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = document.createElement('tr');
             row.className = 'table-row';
             row.innerHTML = `
-                <td>${user.id}</td>
+                <td>${user.id || 'N/A'}</td>
                 <td>
                     <div class="user-info">
                         <div class="user-avatar">${getUserInitials(user.nombre)}</div>
-                        <span>${user.nombre}</span>
+                        <span>${user.nombre || 'Sin nombre'}</span>
                     </div>
                 </td>
-                <td>${user.email}</td>
-                <td><span class="role-badge ${getRolClass(user.rol)}">${user.rol}</span></td>
+                <td>${user.email || 'N/A'}</td>
+                <td><span class="role-badge ${getRolClass(user.rol)}">${user.rol || 'Sin rol'}</span></td>
                 <td>${formatDate(user.fechaCreacion)}</td>
                 <td>
                     <div class="action-buttons">
@@ -97,14 +119,12 @@ document.addEventListener('DOMContentLoaded', function () {
     async function showUserModal(userId = null) {
         userForm.reset();
         document.getElementById('userId').value = '';
+        document.getElementById('password').value = '';
 
         if (userId) {
             try {
                 const response = await fetch(`${API_BASE_URL}/${userId}`);
-                if (!response.ok) {
-                    throw new Error('Error al obtener usuario');
-                }
-                const user = await response.json();
+                const user = await handleApiResponse(response);
                 
                 document.getElementById('userId').value = user.id;
                 document.getElementById('nombre').value = user.nombre || '';
@@ -112,13 +132,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('rol').value = user.rol || '';
                 document.getElementById('modalTitle').textContent = 'Editar Usuario';
                 document.getElementById('password').required = false;
+                document.getElementById('password').placeholder = 'Dejar en blanco para no cambiar';
             } catch (error) {
-                console.error('Error:', error);
-                showAlert('Error al cargar usuario', 'danger');
+                console.error('Error al cargar usuario:', error);
+                showAlert(`Error al cargar usuario: ${error.message}`, 'danger');
+                return;
             }
         } else {
             document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
             document.getElementById('password').required = true;
+            document.getElementById('password').placeholder = 'Contraseña requerida';
         }
 
         userModal.show();
@@ -129,14 +152,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const userId = document.getElementById('userId').value;
         const userData = {
-            nombre: document.getElementById('nombre').value,
-            email: document.getElementById('email').value,
+            nombre: document.getElementById('nombre').value.trim(),
+            email: document.getElementById('email').value.trim(),
             rol: document.getElementById('rol').value
         };
 
         const password = document.getElementById('password').value;
         if (password) {
             userData.contrasena = password;
+        }
+
+        // Validación básica
+        if (!userData.nombre || !userData.email || !userData.rol) {
+            showAlert('Por favor complete todos los campos requeridos', 'warning');
+            return;
         }
 
         try {
@@ -161,19 +190,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al procesar la solicitud');
-            }
-
-            const result = await response.json();
+            const result = await handleApiResponse(response);
+            
             showAlert(userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito', 'success');
             userModal.hide();
             await fetchUsers(); // Recargar la lista de usuarios
             searchInput.value = '';
         } catch (error) {
-            console.error('Error:', error);
-            showAlert(error.message || 'Ocurrió un error', 'danger');
+            console.error('Error al guardar usuario:', error);
+            showAlert(error.message || 'Ocurrió un error al procesar la solicitud', 'danger');
         }
     }
 
@@ -197,11 +222,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function formatDate(dateStr) {
         if (!dateStr) return 'N/A';
-        return dateStr.split('-').reverse().join('/');
+        
+        try {
+            // Manejar diferentes formatos de fecha
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                return dateStr.split('-').reverse().join('/');
+            }
+            return date.toLocaleDateString('es-ES');
+        } catch {
+            return dateStr;
+        }
     }
 
     function showAlert(message, type = 'info') {
         const alertContainer = document.getElementById('alertContainer');
+        
+        // Limpiar alertas anteriores
+        alertContainer.innerHTML = '';
+        
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
         alertDiv.innerHTML = `
@@ -220,22 +259,21 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     window.deleteUser = async function (userId) {
-        if (confirm('¿Está seguro de que desea eliminar este usuario?')) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/${userId}`, {
-                    method: 'DELETE'
-                });
+        if (!confirm('¿Está seguro de que desea eliminar este usuario? Esta acción no se puede deshacer.')) {
+            return;
+        }
 
-                if (!response.ok) {
-                    throw new Error('Error al eliminar usuario');
-                }
+        try {
+            const response = await fetch(`${API_BASE_URL}/${userId}`, {
+                method: 'DELETE'
+            });
 
-                showAlert('Usuario eliminado con éxito', 'success');
-                await fetchUsers(); // Recargar la lista de usuarios
-            } catch (error) {
-                console.error('Error:', error);
-                showAlert('No se pudo eliminar el usuario', 'danger');
-            }
+            await handleApiResponse(response);
+            showAlert('Usuario eliminado con éxito', 'success');
+            await fetchUsers(); // Recargar la lista de usuarios
+        } catch (error) {
+            console.error('Error al eliminar usuario:', error);
+            showAlert(`No se pudo eliminar el usuario: ${error.message}`, 'danger');
         }
     };
 });
