@@ -23,7 +23,7 @@ public class Usuario {
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion = new Date();
 
-    @Column(name = "contrasena", nullable = false, length = 255)
+    @Column(name = "contrasena", nullable = true, length = 255)
     private String contraseña;
 
     @Column(name = "rol", nullable = false, length = 255)
