@@ -5,77 +5,90 @@ document.addEventListener('DOMContentLoaded', function() {
     const togglePasswordBtn = document.querySelector('.toggle-password');
     const loginError = document.getElementById('loginError');
     
-
+    // Toggle password visibility
     togglePasswordBtn.addEventListener('click', function() {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
         
-
+        // Toggle icon
         this.querySelector('i').classList.toggle('fa-eye-slash');
         this.querySelector('i').classList.toggle('fa-eye');
     });
     
-
-    loginForm.addEventListener('submit', function(e) {
+    // Handle form submission
+    loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const email = emailInput.value;
         const password = passwordInput.value;
         
-  
-        const mockUsers = [
-            { email: 'ana.martinez@agencia.com', password: 'admin123', name: 'Ana Martínez', role: 'Admin', avatar: 'AM' },
-            { email: 'carlos.ruiz@agencia.com', password: 'creative123', name: 'Carlos Ruiz', role: 'Creativo', avatar: 'CR' },
-            { email: 'maria.lopez@agencia.com', password: 'creative123', name: 'María López', role: 'Creativo', avatar: 'ML' },
-            { email: 'alberto.sanchez@agencia.com', password: 'creative123', name: 'Alberto Sánchez', role: 'Creativo', avatar: 'AS' },
-            { email: 'laura.gomez@agencia.com', password: 'creative123', name: 'Laura Gómez', role: 'Creativo', avatar: 'LG' },
-            { email: 'pedro.diaz@agencia.com', password: 'creative123', name: 'Pedro Díaz', role: 'Creativo', avatar: 'PD' }
-        ];
-        
-        
-        const user = mockUsers.find(u => u.email === email && u.password === password);
-        
-        if (user) {
-         
-            localStorage.setItem('taskflow_user', JSON.stringify({
-                id: user.email === 'ana.martinez@agencia.com' ? 1 : 2,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatar: user.avatar
-            }));
+        // Conectar con el backend usando el endpoint de usuarios
+        try {
+            // Buscar usuario por email
+            const response = await fetch('/api/usuarios/buscar?nombre=' + encodeURIComponent(email));
             
-            localStorage.setItem('taskflow_token', 'mock-token-for-demo-purposes');
-            
-      
-            if (user.role === 'Admin') {
-                window.location.href = 'dashboard.html';
-            } else {
-                window.location.href = 'creative-view.html';
+            if (!response.ok) {
+                throw new Error('Error al conectar con el servidor');
             }
-        } else {
-   
-            loginError.style.display = 'block';
             
-
-            passwordInput.value = '';
+            const usuarios = await response.json();
             
+            // Buscar usuario con email exacto
+            const usuario = usuarios.find(u => u.email === email);
             
-            emailInput.focus();
-            
-
-            setTimeout(() => {
-                loginError.style.display = 'none';
-            }, 3000);
+            if (usuario) {
+                // TODO: En un entorno real, validar password con el hash
+                // Por ahora simulamos que la contraseña es válida
+                
+                // Guardar información del usuario en localStorage
+                localStorage.setItem('taskflow_user', JSON.stringify({
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    email: usuario.email,
+                    rol: usuario.rol,
+                    avatar: usuario.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                }));
+                
+                localStorage.setItem('taskflow_token', 'session-' + Date.now());
+                
+                // Redirigir según el rol
+                if (usuario.rol === 'Admin') {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'creative-view.html';
+                }
+            } else {
+                // Usuario no encontrado
+                showLoginError('Credenciales inválidas');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showLoginError('Error al conectar con el servidor');
         }
     });
     
-
+    function showLoginError(message) {
+        loginError.textContent = message;
+        loginError.style.display = 'block';
+        
+        // Clear password
+        passwordInput.value = '';
+        
+        // Focus email
+        emailInput.focus();
+        
+        // Hide error after 3 seconds
+        setTimeout(() => {
+            loginError.style.display = 'none';
+        }, 3000);
+    }
+    
+    // Check if already logged in
     if (localStorage.getItem('taskflow_token')) {
         const user = JSON.parse(localStorage.getItem('taskflow_user') || '{}');
-        if (user.role === 'Admin') {
+        if (user.rol === 'Admin') {
             window.location.href = 'dashboard.html';
-        } else if (user.role === 'Creativo') {
+        } else if (user.rol === 'Creativo') {
             window.location.href = 'creative-view.html';
         }
     }
