@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const orderTableBody = document.getElementById('orderTableBody');
     if (!orderTableBody) return;
 
-    // Configuración de Supabase - CORRECCIÓN AQUÍ
+    // Configuración de Supabase
     const supabaseUrl = 'https://onbgqjndemplsgxdaltr.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw';
     
@@ -98,45 +98,55 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Funciones principales
     async function init() {
+        const isAuthenticated = await checkAuthStatus();
+        if (!isAuthenticated) return;
+        
+        await getCurrentUser();
         await fetchTickets();
         await fetchUsers();
         populateAssigneeDropdown();
         setupFileUpload();
         renderCalendar();
-        getCurrentUser();
     }
-     async function getCurrentUser() {
+    
+    async function checkAuthStatus() {
+        const token = localStorage.getItem('taskflow_token');
+        if (!token) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    }
+    
+    async function getCurrentUser() {
         try {
-            // Opción A: Si usas Supabase Auth
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error) throw error;
-            
-            if (user) {
-                // Buscar el usuario en tu tabla de usuarios
-                const { data: userData, error: userError } = await supabase
-                    .from('usuario')
-                    .select('*')
-                    .eq('email', user.email) // Asumiendo que tienes un campo email
-                    .single();
-                
-                if (userError) throw userError;
-                currentUser = userData;
-                return userData;
+            // Obtener usuario del localStorage (donde lo guardamos en login.js)
+            const userStr = localStorage.getItem('taskflow_user');
+            if (!userStr) {
+                console.error('No se encontró usuario en localStorage');
+                return null;
             }
+            
+            const userData = JSON.parse(userStr);
+            
+            // Verificar que tenemos los datos mínimos necesarios
+            if (!userData.id || !userData.name) {
+                console.error('Datos de usuario incompletos en localStorage');
+                return null;
+            }
+            
+            currentUser = {
+                id_usuario: userData.id,
+                nombre: userData.name,
+                email: userData.email,
+                rol: userData.role
+            };
+            
+            return currentUser;
         } catch (error) {
             console.error('Error al obtener usuario:', error);
             return null;
         }
-    }
-    
-       async function checkAuthStatus() {
-        const user = await getCurrentUser();
-        if (!user) {
-            // Redirigir al login si no hay usuario
-            window.location.href = '/login.html';
-            return false;
-        }
-        return true;
     }
 
     async function fetchTickets() {
@@ -439,9 +449,13 @@ document.addEventListener('DOMContentLoaded', function() {
     async function handleOrderSubmit(e) {
         e.preventDefault();
         
+        if (!currentUser) {
+            showAlert('No se pudo identificar al usuario actual', 'danger');
+            return;
+        }
+        
         const ticketId = document.getElementById('orderId').value;
         const assignedToId = document.getElementById('assignedTo').value;
-        const assignedUser = assignedToId ? users.find(u => u.id_usuario == assignedToId) : null;
         
         const ticketData = {
             titulo: document.getElementById('orderTitle').value,
@@ -451,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fecha_limite: document.getElementById('orderDeadline').value,
             id_cliente_entregable: parseInt(document.getElementById('orderClient').value),
             descripcion: document.getElementById('orderDescription').value,
-            id_creador: currentUser.id_usuario // Temporal - deberías obtener esto del usuario logueado
+            id_creador: currentUser.id_usuario // Usamos el ID del usuario actual
         };
         
         try {
@@ -508,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const assignedUser = users.find(u => u.id_usuario === ticket.id_usuario_asignado);
+            const creatorUser = users.find(u => u.id_usuario === ticket.id_creador);
             
             document.getElementById('viewOrderId').textContent = ticket.id_ticket;
             document.getElementById('viewOrderTitle').textContent = ticket.titulo;
@@ -519,7 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('viewOrderPriority').className = `priority-badge ${ticket.priority || 'medium'}`;
             document.getElementById('viewOrderClient').textContent = ticket.id_cliente_entregable;
             document.getElementById('viewAssignedTo').textContent = assignedUser ? assignedUser.nombre : 'No asignado';
-            document.getElementById('viewCreatedBy').textContent = 'Sistema'; // Podrías hacer un JOIN para obtener el nombre del creador
+            document.getElementById('viewCreatedBy').textContent = creatorUser ? creatorUser.nombre : 'Sistema';
             document.getElementById('viewCreatedDate').textContent = formatDate(ticket.fecha_creacion);
             document.getElementById('viewDeadline').textContent = formatDate(ticket.fecha_limite);
             document.getElementById('viewDescription').textContent = ticket.descripcion;
@@ -669,10 +684,30 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.editOrder = function(ticketId) {
+        const ticket = tickets.find(t => t.id_ticket === ticketId);
+        
+        if (!ticket) return;
+        
+        // Solo permitir edición si es el creador o admin
+        if (currentUser.rol !== 'Admin' && ticket.id_creador !== currentUser.id_usuario) {
+            showAlert('No tienes permiso para editar este ticket', 'warning');
+            return;
+        }
+        
         showOrderModal(ticketId);
     };
     
     window.deleteOrder = function(ticketId) {
+        const ticket = tickets.find(t => t.id_ticket === ticketId);
+        
+        if (!ticket) return;
+        
+        // Solo permitir eliminación si es el creador o admin
+        if (currentUser.rol !== 'Admin' && ticket.id_creador !== currentUser.id_usuario) {
+            showAlert('No tienes permiso para eliminar este ticket', 'warning');
+            return;
+        }
+        
         document.getElementById('deleteOrderId').textContent = ticketId;
         deleteConfirmModal.show();
     };
