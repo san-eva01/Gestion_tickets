@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Tickets</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-layer-group"></i> TaskFlow
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active"><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="work-orders.html"><i class="fas fa-tasks"></i> Tickets</a></li>
+                <li><a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a></li>
+                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+                <li><a href="review-deliverables.html"><i class="fas fa-clipboard-check"></i> Revisar Entregables</a>
+                </li>
+                <!-- <li><a href="settings.html"><i class="fas fa-cogs"></i> Configuración</a></li> -->
+                <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">Dashboard</h1>
+                <div class="user-info">
+                    <span class="user-name">Ana Martínez</span>
+                    <span class="role-badge">Jefe Operaciones</span>
+                </div>
+            </div>
+
+            <div class="dashboard-summary">
+                <div class="summary-card">
+                    <div class="summary-icon bg-purple">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="summary-data">
+                        <h3>24</h3>
+                        <p>Tickets Totales</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon bg-blue">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                    <div class="summary-data">
+                        <h3>12</h3>
+                        <p>En Proceso</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon bg-amber">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="summary-data">
+                        <h3>5</h3>
+                        <p>En Revisión</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon bg-green">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="summary-data">
+                        <h3>7</h3>
+                        <p>Completados</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2>Tickets Recientes</h2>
+                        <a href="work-orders.html" class="btn-link">Ver Todos</a>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Título</th>
+                                    <th>Categoría</th>
+                                    <th>Asignado a</th>
+                                    <th>Estado</th>
+                                    <th>Fecha Límite</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#TKT-2023-42</td>
+                                    <td>Campaña Verano 2023</td>
+                                    <td>Diseño Gráfico</td>
+                                    <td>Carlos Ruiz</td>
+                                    <td><span class="status-badge in-progress">En Proceso</span></td>
+                                    <td>22/06/2023</td>
+                                </tr>
+                                <tr>
+                                    <td>#TKT-2023-41</td>
+                                    <td>Rediseño Sitio Web</td>
+                                    <td>Desarrollo Web</td>
+                                    <td>María López</td>
+                                    <td><span class="status-badge review">En Revisión</span></td>
+                                    <td>18/06/2023</td>
+                                </tr>
+                                <tr>
+                                    <td>#TKT-2023-40</td>
+                                    <td>Video Corporativo</td>
+                                    <td>Producción Audiovisual</td>
+                                    <td>Alberto Sánchez</td>
+                                    <td><span class="status-badge completed">Aprobado</span></td>
+                                    <td>15/06/2023</td>
+                                </tr>
+                                <tr>
+                                    <td>#TKT-2023-39</td>
+                                    <td>Copy para Newsletter</td>
+                                    <td>Copywriting</td>
+                                    <td>Laura Gómez</td>
+                                    <td><span class="status-badge completed">Entregado</span></td>
+                                    <td>14/06/2023</td>
+                                </tr>
+                                <tr>
+                                    <td>#TKT-2023-38</td>
+                                    <td>Pauta Publicitaria</td>
+                                    <td>Marketing Digital</td>
+                                    <td>Pedro Díaz</td>
+                                    <td><span class="status-badge assigned">Asignado</span></td>
+                                    <td>25/06/2023</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row-cards">
+                    <div class="dashboard-card half-card">
+                        <div class="card-header">
+                            <h2>Calendario de Entregas</h2>
+                        </div>
+                        <div class="calendar-controls">
+                            <button class="btn-icon" id="prevMonth" title="Mes anterior"><i
+                                    class="fas fa-chevron-left"></i></button>
+                            <h3 class="calendar-title" id="calendarTitle">Junio 2023</h3>
+                         
+                            <button class="btn-icon" id="nextMonth" title="Mes siguiente">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                           
+                        </div>
+                        <div class="calendar-grid" id="upcomingCalendar">
+                            <div class="calendar-header">
+                                <div>Lun</div>
+                                <div>Mar</div>
+                                <div>Mié</div>
+                                <div>Jue</div>
+                                <div>Vie</div>
+                                <div>Sáb</div>
+                                <div>Dom</div>
+                            </div>
+                            <div class="calendar-days" id="calendarDays">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card half-card">
+                        <div class="card-header">
+                            <h2>Distribución de Tickets</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="orderDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row-cards">
+                    <div class="dashboard-card half-card">
+                        <div class="card-header">
+                            <h2>Creativos Más Activos</h2>
+                        </div>
+                        <div class="team-stats">
+                            <div class="team-member">
+                                <div class="user-avatar">CR</div>
+                                <div class="member-info">
+                                    <h4>Carlos Ruiz</h4>
+                                    <p>Diseñador Gráfico</p>
+                                </div>
+                                <div class="task-count">7 tickets</div>
+                            </div>
+                            <div class="team-member">
+                                <div class="user-avatar">ML</div>
+                                <div class="member-info">
+                                    <h4>María López</h4>
+                                    <p>Desarrolladora Web</p>
+                                </div>
+                                <div class="task-count">5 tickets</div>
+                            </div>
+                            <div class="team-member">
+                                <div class="user-avatar">AS</div>
+                                <div class="member-info">
+                                    <h4>Alberto Sánchez</h4>
+                                    <p>Productor Audiovisual</p>
+                                </div>
+                                <div class="task-count">4 tickets</div>
+                            </div>
+                            <div class="team-member">
+                                <div class="user-avatar">LG</div>
+                                <div class="member-info">
+                                    <h4>Laura Gómez</h4>
+                                    <p>Copywriter</p>
+                                </div>
+                                <div class="task-count">4 tickets</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card half-card">
+                        <div class="card-header">
+                            <h2>Actividad Reciente</h2>
+                        </div>
+                        <div class="activity-feed">
+                            <div class="activity-item">
+                                <div class="activity-icon bg-purple">
+                                    <i class="fas fa-plus-circle"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <p><strong>Ana Martínez</strong> creó un nuevo ticket <a href="#">#TKT-2023-42</a>
+                                    </p>
+                                    <span class="activity-time">Hace 2 horas</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon bg-amber">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <p><strong>Carlos Ruiz</strong> actualizó el estado de <a href="#">#TKT-2023-41</a>
+                                        a "En Revisión"</p>
+                                    <span class="activity-time">Hace 3 horas</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon bg-green">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <p><strong>Ana Martínez</strong> aprobó el entregable de <a
+                                            href="#">#TKT-2023-40</a></p>
+                                    <span class="activity-time">Hace 5 horas</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon bg-blue">
+                                    <i class="fas fa-comment"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <p><strong>Pedro Díaz</strong> agregó un comentario en <a href="#">#TKT-2023-38</a>
+                                    </p>
+                                    <span class="activity-time">Hace 1 día</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon bg-purple">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <p><strong>Ana Martínez</strong> agregó a <strong>Laura Gómez</strong> al sistema
+                                    </p>
+                                    <span class="activity-time">Hace 2 días</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>

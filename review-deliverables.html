@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revisar Entregables - Gestión de Tickets</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-layer-group"></i> TaskFlow
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="work-orders.html"><i class="fas fa-tasks"></i> Tickets</a></li>
+                <li><a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a></li>
+                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+                <li class="active"><a href="review-deliverables.html"><i class="fas fa-clipboard-check"></i> Revisar Entregables</a></li>
+                <!-- <li><a href="settings.html"><i class="fas fa-cogs"></i> Configuración</a></li> -->
+                <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">Revisar Entregables</h1>
+                <div class="user-info">
+                    <span class="user-name">Ana Martínez</span>
+                    <span class="role-badge">Jefe Operaciones</span>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div id="alertContainer"></div>
+                
+                <div class="filter-controls">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="search-input" placeholder="Buscar entregable...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">Todos los estados</option>
+                            <option value="pending">Pendiente de Revisión</option>
+                            <option value="approved">Aprobado</option>
+                            <option value="rejected">Rechazado</option>
+                        </select>
+                        <select id="typeFilter" class="filter-select">
+                            <option value="">Todas las categorías</option>
+                            <option value="design">Diseño Gráfico</option>
+                            <option value="web">Desarrollo Web</option>
+                            <option value="video">Producción Audiovisual</option>
+                            <option value="copy">Copywriting</option>
+                            <option value="social">Pauta en Redes</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-wrapper mt-3">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Título</th>
+                                <th>Creativo</th>
+                                <th>Categoría</th>
+                                <th>Estado</th>
+                                <th>Fecha Entrega</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deliverableTableBody">
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="viewDeliverableModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalle de Entregable #<span id="viewDeliverableId"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="order-header">
+                        <h3 id="viewDeliverableTitle"></h3>
+                        <div class="order-meta">
+                            <span class="type-badge" id="viewDeliverableType"></span>
+                            <span class="status-badge" id="viewDeliverableStatus"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="order-details">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="detail-group">
+                                    <label>Creativo:</label>
+                                    <p id="viewDeliverableCreative"></p>
+                                </div>
+                                <div class="detail-group">
+                                    <label>Cliente:</label>
+                                    <p id="viewDeliverableClient"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-group">
+                                    <label>Fecha de Entrega:</label>
+                                    <p id="viewDeliverableSubmitted"></p>
+                                </div>
+                                <div class="detail-group" id="viewReviewedDateGroup">
+                                    <label>Fecha de Revisión:</label>
+                                    <p id="viewDeliverableReviewed"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-group">
+                            <label>Archivos Adjuntos:</label>
+                            <div class="attachments-list" id="viewDeliverableFiles"></div>
+                        </div>
+                        
+                        <div class="detail-group" id="viewFeedbackSection" style="display: none;">
+                            <label>Feedback:</label>
+                            <div class="description-box" id="viewFeedback"></div>
+                        </div>
+                        
+                        <div class="order-comments">
+                            <h4>Comentarios</h4>
+                            <div class="comments-container" id="viewDeliverableComments"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Revisar Entregable #<span id="reviewDeliverableId"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="reviewForm">
+                    <div class="modal-body">
+                        <div class="order-header mb-4">
+                            <h3 id="reviewDeliverableTitle"></h3>
+                            <div class="mt-2">
+                                <p><strong>Creativo:</strong> <span id="reviewDeliverableCreative"></span></p>
+                                <p><strong>Cliente:</strong> <span id="reviewDeliverableClient"></span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-group mb-4">
+                            <label>Archivos Entregados:</label>
+                            <div class="attachments-list" id="reviewDeliverableFiles"></div>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label class="form-label">Decisión:</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reviewDecision" id="approveDecision" value="approve" checked>
+                                    <label class="form-check-label" for="approveDecision">
+                                        <i class="fas fa-check-circle text-success"></i> Aprobar
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reviewDecision" id="rejectDecision" value="reject">
+                                    <label class="form-check-label" for="rejectDecision">
+                                        <i class="fas fa-times-circle text-danger"></i> Rechazar
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reviewFeedback" class="form-label">Feedback para el creativo:</label>
+                            <textarea id="reviewFeedback" class="form-control" rows="5" required></textarea>
+                            <small class="text-muted">Este feedback será visible para el creativo y quedará registrado en el historial del proyecto.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-primary">Enviar Revisión</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="alertContainer" class="alert-container"></div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/review-deliverables.js"></script>
+</body>
+</html>
