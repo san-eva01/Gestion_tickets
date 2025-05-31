@@ -1,7 +1,16 @@
-
 document.addEventListener('DOMContentLoaded', function() {
-
+    // Verificar que estamos en la página de tickets
     const orderTableBody = document.getElementById('orderTableBody');
+    if (!orderTableBody) return;
+
+    // Configuración de Supabase - CORRECCIÓN AQUÍ
+    const supabaseUrl = 'https://onbgqjndemplsgxdaltr.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw';
+    
+    // Usar la librería global de Supabase
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Elementos del DOM
     const ordersGrid = document.getElementById('ordersGrid');
     const calendarDays = document.getElementById('calendarDays');
     const orderForm = document.getElementById('orderForm');
@@ -14,233 +23,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewContainers = document.querySelectorAll('.view');
     const btnNewOrder = document.getElementById('btnNewOrder');
     
-
+    // Modales
     const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
     const viewOrderModal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
     const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
     
+    // Variables de estado
+    let tickets = [];
+    let users = [];
+    let currentUser = null;
 
-    window.mockOrders = [
-        {
-            id: 'TKT-2023-42',
-            title: 'Campaña Verano 2023',
-            type: 'design',
-            assigned_to: {
-                id: 2,
-                name: 'Carlos Ruiz',
-                avatar: 'CR'
-            },
-            status: 'in-progress',
-            created_date: '2023-06-15',
-            deadline: '2023-06-22',
-            client: 'Playa Resort',
-            description: 'Diseño de materiales promocionales para la campaña de verano 2023, incluyendo banners, posts para redes sociales y folletos digitales.',
-            priority: 'high',
-            created_by: {
-                id: 1,
-                name: 'Ana Martínez',
-                avatar: 'AM'
-            },
-            attachments: [
-                { name: 'brief_campaña.pdf', type: 'pdf' },
-                { name: 'logos_cliente.zip', type: 'zip' }
-            ],
-            comments: [
-                {
-                    id: 1,
-                    user: { id: 1, name: 'Ana Martínez', avatar: 'AM' },
-                    date: '2023-06-15T13:45:00',
-                    text: 'Por favor prioriza los banners digitales para redes sociales.'
-                },
-                {
-                    id: 2,
-                    user: { id: 2, name: 'Carlos Ruiz', avatar: 'CR' },
-                    date: '2023-06-16T09:30:00',
-                    text: 'Entendido, ya estoy trabajando en los diseños para Instagram y Facebook.'
-                }
-            ],
-            timeline: [
-                { date: '2023-06-15T10:00:00', action: 'created', user: 'Ana Martínez' },
-                { date: '2023-06-15T10:05:00', action: 'assigned', user: 'Ana Martínez', assignee: 'Carlos Ruiz' },
-                { date: '2023-06-16T08:30:00', action: 'status_change', user: 'Carlos Ruiz', from_status: 'assigned', to_status: 'in-progress' }
-            ]
-        },
-        {
-            id: 'TKT-2023-41',
-            title: 'Rediseño Sitio Web',
-            type: 'web',
-            assigned_to: {
-                id: 3,
-                name: 'María López',
-                avatar: 'ML'
-            },
-            status: 'review',
-            created_date: '2023-06-10',
-            deadline: '2023-06-18',
-            client: 'Tecnología Avanzada',
-            description: 'Rediseño completo del sitio web corporativo con enfoque en mejorar la experiencia de usuario y optimizar la conversión.',
-            priority: 'medium',
-            created_by: {
-                id: 1,
-                name: 'Ana Martínez',
-                avatar: 'AM'
-            },
-            attachments: [
-                { name: 'wireframes.pdf', type: 'pdf' },
-                { name: 'contenido_paginas.docx', type: 'doc' }
-            ],
-            comments: [
-                {
-                    id: 3,
-                    user: { id: 3, name: 'María López', avatar: 'ML' },
-                    date: '2023-06-17T15:20:00',
-                    text: 'He finalizado el rediseño. Pueden revisar en el enlace del repositorio.'
-                }
-            ],
-            timeline: [
-                { date: '2023-06-10T11:30:00', action: 'created', user: 'Ana Martínez' },
-                { date: '2023-06-10T13:15:00', action: 'assigned', user: 'Ana Martínez', assignee: 'María López' },
-                { date: '2023-06-11T09:00:00', action: 'status_change', user: 'María López', from_status: 'assigned', to_status: 'in-progress' },
-                { date: '2023-06-17T15:20:00', action: 'status_change', user: 'María López', from_status: 'in-progress', to_status: 'review' }
-            ]
-        },
-        {
-            id: 'TKT-2023-40',
-            title: 'Video Corporativo',
-            type: 'video',
-            assigned_to: {
-                id: 4,
-                name: 'Alberto Sánchez',
-                avatar: 'AS'
-            },
-            status: 'approved',
-            created_date: '2023-06-05',
-            deadline: '2023-06-15',
-            client: 'Constructora Edificar',
-            description: 'Producción de un video corporativo de 2 minutos presentando la historia, valores y servicios de la empresa.',
-            priority: 'medium',
-            created_by: {
-                id: 1,
-                name: 'Ana Martínez',
-                avatar: 'AM'
-            },
-            attachments: [
-                { name: 'guion_video.docx', type: 'doc' },
-                { name: 'logo_vectorizado.ai', type: 'ai' }
-            ],
-            comments: [
-                {
-                    id: 4,
-                    user: { id: 4, name: 'Alberto Sánchez', avatar: 'AS' },
-                    date: '2023-06-14T16:00:00',
-                    text: 'Video completado y enviado para revisión.'
-                },
-                {
-                    id: 5,
-                    user: { id: 1, name: 'Ana Martínez', avatar: 'AM' },
-                    date: '2023-06-15T10:30:00',
-                    text: 'Video aprobado. Excelente trabajo, Alberto.'
-                }
-            ],
-            timeline: [
-                { date: '2023-06-05T09:45:00', action: 'created', user: 'Ana Martínez' },
-                { date: '2023-06-05T10:00:00', action: 'assigned', user: 'Ana Martínez', assignee: 'Alberto Sánchez' },
-                { date: '2023-06-06T08:30:00', action: 'status_change', user: 'Alberto Sánchez', from_status: 'assigned', to_status: 'in-progress' },
-                { date: '2023-06-14T16:00:00', action: 'status_change', user: 'Alberto Sánchez', from_status: 'in-progress', to_status: 'review' },
-                { date: '2023-06-15T10:30:00', action: 'status_change', user: 'Ana Martínez', from_status: 'review', to_status: 'approved' }
-            ]
-        },
-        {
-            id: 'TKT-2023-39',
-            title: 'Copy para Newsletter',
-            type: 'copy',
-            assigned_to: {
-                id: 5,
-                name: 'Laura Gómez',
-                avatar: 'LG'
-            },
-            status: 'delivered',
-            created_date: '2023-06-01',
-            deadline: '2023-06-14',
-            client: 'Moda Express',
-            description: 'Redacción del contenido para la newsletter mensual, con enfoque en las nuevas colecciones de verano y ofertas especiales.',
-            priority: 'low',
-            created_by: {
-                id: 1,
-                name: 'Ana Martínez',
-                avatar: 'AM'
-            },
-            attachments: [
-                { name: 'referencias_anteriores.pdf', type: 'pdf' }
-            ],
-            comments: [
-                {
-                    id: 6,
-                    user: { id: 5, name: 'Laura Gómez', avatar: 'LG' },
-                    date: '2023-06-13T11:20:00',
-                    text: 'He entregado el copy final. Se ha incluido un CTA adicional para la promoción de temporada.'
-                }
-            ],
-            timeline: [
-                { date: '2023-06-01T15:30:00', action: 'created', user: 'Ana Martínez' },
-                { date: '2023-06-01T15:45:00', action: 'assigned', user: 'Ana Martínez', assignee: 'Laura Gómez' },
-                { date: '2023-06-02T09:15:00', action: 'status_change', user: 'Laura Gómez', from_status: 'assigned', to_status: 'in-progress' },
-                { date: '2023-06-13T11:20:00', action: 'status_change', user: 'Laura Gómez', from_status: 'in-progress', to_status: 'review' },
-                { date: '2023-06-13T16:00:00', action: 'status_change', user: 'Ana Martínez', from_status: 'review', to_status: 'approved' },
-                { date: '2023-06-14T09:00:00', action: 'status_change', user: 'Ana Martínez', from_status: 'approved', to_status: 'delivered' }
-            ]
-        },
-        {
-            id: 'TKT-2023-38',
-            title: 'Pauta Publicitaria',
-            type: 'social',
-            assigned_to: {
-                id: 6,
-                name: 'Pedro Díaz',
-                avatar: 'PD'
-            },
-            status: 'assigned',
-            created_date: '2023-06-18',
-            deadline: '2023-06-25',
-            client: 'Cafetería Aroma',
-            description: 'Creación y gestión de campaña publicitaria en Facebook e Instagram para promocionar nuevos productos de cafetería.',
-            priority: 'medium',
-            created_by: {
-                id: 1,
-                name: 'Ana Martínez',
-                avatar: 'AM'
-            },
-            attachments: [
-                { name: 'imagenes_producto.zip', type: 'zip' }
-            ],
-            comments: [
-                {
-                    id: 7,
-                    user: { id: 6, name: 'Pedro Díaz', avatar: 'PD' },
-                    date: '2023-06-18T17:00:00',
-                    text: 'Recibido. Comenzaré a analizar la estrategia para la campaña.'
-                }
-            ],
-            timeline: [
-                { date: '2023-06-18T14:00:00', action: 'created', user: 'Ana Martínez' },
-                { date: '2023-06-18T14:15:00', action: 'assigned', user: 'Ana Martínez', assignee: 'Pedro Díaz' }
-            ]
-        }
-    ];
-    
-
-    const mockUsers = [
-        { id: 2, name: 'Carlos Ruiz', avatar: 'CR', role: 'Creativo' },
-        { id: 3, name: 'María López', avatar: 'ML', role: 'Creativo' },
-        { id: 4, name: 'Alberto Sánchez', avatar: 'AS', role: 'Creativo' },
-        { id: 5, name: 'Laura Gómez', avatar: 'LG', role: 'Creativo' },
-        { id: 6, name: 'Pedro Díaz', avatar: 'PD', role: 'Creativo' }
-    ];
-    
-
+    // Inicialización
     init();
-    
 
+    // Event Listeners
     if (btnNewOrder) {
         btnNewOrder.addEventListener('click', () => showOrderModal());
     }
@@ -285,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('addComment').addEventListener('click', addComment);
     }
 
-
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             tabButtons.forEach(b => b.classList.remove('active'));
@@ -301,29 +96,95 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    function init() {
-        renderOrders();
+    // Funciones principales
+    async function init() {
+        await fetchTickets();
+        await fetchUsers();
         populateAssigneeDropdown();
         setupFileUpload();
         renderCalendar();
+        getCurrentUser();
+    }
+     async function getCurrentUser() {
+        try {
+            // Opción A: Si usas Supabase Auth
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) throw error;
+            
+            if (user) {
+                // Buscar el usuario en tu tabla de usuarios
+                const { data: userData, error: userError } = await supabase
+                    .from('usuario')
+                    .select('*')
+                    .eq('email', user.email) // Asumiendo que tienes un campo email
+                    .single();
+                
+                if (userError) throw userError;
+                currentUser = userData;
+                return userData;
+            }
+        } catch (error) {
+            console.error('Error al obtener usuario:', error);
+            return null;
+        }
     }
     
-    function renderOrders(filteredOrders = null) {
-        const ordersToRender = filteredOrders || mockOrders;
-        
+       async function checkAuthStatus() {
+        const user = await getCurrentUser();
+        if (!user) {
+            // Redirigir al login si no hay usuario
+            window.location.href = '/login.html';
+            return false;
+        }
+        return true;
+    }
 
-        renderTableView(ordersToRender);
-        
+    async function fetchTickets() {
+        try {
+            const { data, error } = await supabase
+                .from('ticket')
+                .select('*')
+                .order('fecha_creacion', { ascending: false });
 
-        renderGridView(ordersToRender);
+            if (error) throw error;
+
+            tickets = data || [];
+            renderOrders();
+        } catch (error) {
+            console.error('Error al obtener tickets:', error);
+            showAlert(`Error al cargar tickets: ${error.message}`, 'danger');
+        }
+    }
+
+    async function fetchUsers() {
+        try {
+            const { data, error } = await supabase
+                .from('usuario')
+                .select('id_usuario, nombre, rol')
+                .order('nombre', { ascending: true });
+
+            if (error) throw error;
+
+            users = data || [];
+        } catch (error) {
+            console.error('Error al obtener usuarios:', error);
+            showAlert(`Error al cargar usuarios: ${error.message}`, 'damage');
+        }
     }
     
-    function renderTableView(orders) {
+    function renderOrders(filteredTickets = null) {
+        const ticketsToRender = filteredTickets || tickets;
+        
+        renderTableView(ticketsToRender);
+        renderGridView(ticketsToRender);
+    }
+    
+    function renderTableView(tickets) {
         if (!orderTableBody) return;
         
         orderTableBody.innerHTML = '';
         
-        if (orders.length === 0) {
+        if (tickets.length === 0) {
             orderTableBody.innerHTML = `
                 <tr>
                     <td colspan="8" class="text-center py-4">No se encontraron tickets que coincidan con su búsqueda</td>
@@ -332,32 +193,33 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        orders.forEach(order => {
+        tickets.forEach(ticket => {
+            const assignedUser = users.find(u => u.id_usuario === ticket.id_usuario_asignado);
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${order.id}</td>
-                <td>${order.title}</td>
-                <td><span class="type-badge ${order.type}">${getTypeName(order.type)}</span></td>
+                <td>${ticket.id_ticket}</td>
+                <td>${ticket.titulo}</td>
+                <td><span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span></td>
                 <td>
                     <div class="user-info">
-                        ${order.assigned_to ? `
-                            <div class="user-avatar">${order.assigned_to.avatar}</div>
-                            <span>${order.assigned_to.name}</span>
+                        ${assignedUser ? `
+                            <div class="user-avatar">${getUserInitials(assignedUser.nombre)}</div>
+                            <span>${assignedUser.nombre}</span>
                         ` : '<span class="text-muted">No asignado</span>'}
                     </div>
                 </td>
-                <td><span class="status-badge ${order.status}">${getStatusName(order.status)}</span></td>
-                <td>${formatDate(order.created_date)}</td>
-                <td>${formatDate(order.deadline)}</td>
+                <td><span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span></td>
+                <td>${formatDate(ticket.fecha_creacion)}</td>
+                <td>${formatDate(ticket.fecha_limite)}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-icon view" onclick="viewOrderDetails('${order.id}')">
+                        <button class="btn-icon view" onclick="viewOrderDetails('${ticket.id_ticket}')">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn-icon edit" onclick="editOrder('${order.id}')">
+                        <button class="btn-icon edit" onclick="editOrder('${ticket.id_ticket}')">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon delete" onclick="deleteOrder('${order.id}')">
+                        <button class="btn-icon delete" onclick="deleteOrder('${ticket.id_ticket}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -367,61 +229,62 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function renderGridView(orders) {
+    function renderGridView(tickets) {
         if (!ordersGrid) return;
         
         ordersGrid.innerHTML = '';
         
-        if (orders.length === 0) {
+        if (tickets.length === 0) {
             ordersGrid.innerHTML = `
                 <div class="text-center py-4 w-100">No se encontraron tickets que coincidan con su búsqueda</div>
             `;
             return;
         }
         
-        orders.forEach(order => {
+        tickets.forEach(ticket => {
+            const assignedUser = users.find(u => u.id_usuario === ticket.id_usuario_asignado);
             const card = document.createElement('div');
             card.className = 'order-card';
             card.innerHTML = `
                 <div class="order-card-header">
-                    <h3 class="order-card-title">${order.title}</h3>
+                    <h3 class="order-card-title">${ticket.titulo}</h3>
                     <div class="order-card-meta">
-                        <span class="status-badge ${order.status}">${getStatusName(order.status)}</span>
-                        <span class="type-badge ${order.type}">${getTypeName(order.type)}</span>
+                        <span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span>
+                        <span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span>
                     </div>
                 </div>
                 <div class="order-card-body">
                     <div class="order-info-item">
                         <span class="order-info-label">Cliente:</span>
-                        <span class="order-info-value">${order.client}</span>
+                        <span class="order-info-value">${ticket.id_cliente_entregable}</span>
                     </div>
                     <div class="order-info-item">
                         <span class="order-info-label">Fecha Límite:</span>
-                        <span class="order-info-value">${formatDate(order.deadline)}</span>
+                        <span class="order-info-value">${formatDate(ticket.fecha_limite)}</span>
                     </div>
                     <div class="order-info-item">
                         <span class="order-info-label">Asignado a:</span>
                         <span class="order-info-value">
-                            ${order.assigned_to ? order.assigned_to.name : 'No asignado'}
+                            ${assignedUser ? assignedUser.nombre : 'No asignado'}
                         </span>
                     </div>
                     <div class="order-info-item">
                         <span class="order-info-label">Prioridad:</span>
                         <span class="order-info-value">
-                            <span class="priority-badge ${order.priority}">${getPriorityName(order.priority)}</span>
+                            <span class="priority-badge ${ticket.priority || 'medium'}">${getPriorityName(ticket.priority || 'medium')}</span>
                         </span>
                     </div>
                 </div>
                 <div class="order-card-footer">
-                    <span class="order-id">${order.id}</span>
+                    <span class="order-id">${ticket.id_ticket}</span>
                     <div class="action-buttons">
-                        <button class="btn-icon view" onclick="viewOrderDetails('${order.id}')">
+                        <button class="btn-icon view" onclick="viewOrderDetails('${ticket.id_ticket}')">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn-icon edit" onclick="editOrder('${order.id}')">
+                        <button class="btn-icon edit" onclick="editOrder('${ticket.id_ticket}')">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon delete" onclick="deleteOrder('${order.id}')">
+                        <button class="btn-icon delete" onclick="deleteOrder('${ticket.id_ticket}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -442,28 +305,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const lastDay = new Date(year, month + 1, 0);
         
         const daysInMonth = lastDay.getDate();
-        const startDayOfWeek = (firstDay.getDay() + 6) % 7; 
+        const startDayOfWeek = (firstDay.getDay() + 6) % 7;
         
-
         document.querySelector('.calendar-title').textContent = new Date(year, month).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
         
         calendarDays.innerHTML = '';
         
-
         for (let i = 0; i < startDayOfWeek; i++) {
             const emptyDay = document.createElement('div');
             emptyDay.className = 'calendar-day inactive';
             calendarDays.appendChild(emptyDay);
         }
         
-
         for (let i = 1; i <= daysInMonth; i++) {
             const day = document.createElement('div');
             day.className = 'calendar-day';
             
             const currentDateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             
-
             const today = new Date();
             const isToday = i === today.getDate() && month === today.getMonth() && year === today.getFullYear();
             
@@ -471,8 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 day.classList.add('today');
             }
             
- 
-            const dayEvents = mockOrders.filter(order => order.deadline === currentDateString);
+            const dayEvents = tickets.filter(ticket => ticket.fecha_limite === currentDateString);
             
             day.innerHTML = `
                 <div class="calendar-day-header">
@@ -480,8 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="calendar-day-events">
                     ${dayEvents.map(event => `
-                        <div class="calendar-event ${event.status}" onclick="viewOrderDetails('${event.id}')">
-                            ${event.title}
+                        <div class="calendar-event ${event.estado}" onclick="viewOrderDetails('${event.id_ticket}')">
+                            ${event.titulo}
                         </div>
                     `).join('')}
                 </div>
@@ -490,7 +348,6 @@ document.addEventListener('DOMContentLoaded', function() {
             calendarDays.appendChild(day);
         }
         
-
         const totalCells = startDayOfWeek + daysInMonth;
         const remainingCells = 7 - (totalCells % 7);
         
@@ -509,11 +366,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         assignedToSelect.innerHTML = '<option value="">Sin asignar</option>';
         
-        mockUsers.forEach(user => {
-            if (user.role === 'Creativo' || user.role === 'Editor') {
+        users.forEach(user => {
+            if (user.rol === 'Creativo' || user.rol === 'Editor') {
                 const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = user.name;
+                option.value = user.id_usuario;
+                option.textContent = user.nombre;
                 assignedToSelect.appendChild(option);
             }
         });
@@ -539,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     fileList.appendChild(fileItem);
                 }
                 
-
                 document.querySelectorAll('.remove-file').forEach(btn => {
                     btn.addEventListener('click', function() {
                         this.closest('.file-item').remove();
@@ -549,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function showOrderModal(orderId = null) {
+    function showOrderModal(ticketId = null) {
         if (!orderForm) return;
         
         orderForm.reset();
@@ -557,58 +413,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('fileList').innerHTML = '';
         document.getElementById('commentsSection').style.display = 'none';
         
-        if(orderId) {
-            const order = mockOrders.find(o => o.id === orderId);
-            if(order) {
-                document.getElementById('orderId').value = order.id;
-                document.getElementById('orderTitle').value = order.title;
-                document.getElementById('orderType').value = order.type;
-                document.getElementById('assignedTo').value = order.assigned_to ? order.assigned_to.id : '';
-                document.getElementById('orderStatus').value = order.status;
-                document.getElementById('priority').value = order.priority;
-                document.getElementById('orderClient').value = order.client;
-                document.getElementById('orderDeadline').value = order.deadline;
-                document.getElementById('orderDescription').value = order.description;
-                
-
-                if (order.attachments && order.attachments.length > 0) {
-                    const fileList = document.getElementById('fileList');
-                    fileList.innerHTML = '';
-                    
-                    order.attachments.forEach(file => {
-                        const fileItem = document.createElement('div');
-                        fileItem.className = 'file-item';
-                        fileItem.innerHTML = `
-                            <span>${file.name}</span>
-                            <i class="fas fa-times remove-file"></i>
-                        `;
-                        fileList.appendChild(fileItem);
-                    });
-                }
-                
-
-                if (order.comments && order.comments.length > 0) {
-                    const commentsContainer = document.getElementById('commentsContainer');
-                    commentsContainer.innerHTML = '';
-                    
-                    order.comments.forEach(comment => {
-                        const commentElement = document.createElement('div');
-                        commentElement.className = 'comment';
-                        commentElement.innerHTML = `
-                            <div class="comment-avatar">${comment.user.avatar}</div>
-                            <div class="comment-content">
-                                <div class="comment-header">
-                                    <span class="comment-author">${comment.user.name}</span>
-                                    <span class="comment-date">${formatDateTime(comment.date)}</span>
-                                </div>
-                                <p class="comment-text">${comment.text}</p>
-                            </div>
-                        `;
-                        commentsContainer.appendChild(commentElement);
-                    });
-                    
-                    document.getElementById('commentsSection').style.display = 'block';
-                }
+        if(ticketId) {
+            const ticket = tickets.find(t => t.id_ticket === ticketId);
+            if(ticket) {
+                document.getElementById('orderId').value = ticket.id_ticket;
+                document.getElementById('orderTitle').value = ticket.titulo;
+                document.getElementById('orderType').value = ticket.categoria;
+                document.getElementById('assignedTo').value = ticket.id_usuario_asignado || '';
+                document.getElementById('orderStatus').value = ticket.estado;
+                document.getElementById('priority').value = ticket.priority || 'medium';
+                document.getElementById('orderClient').value = ticket.id_cliente_entregable;
+                document.getElementById('orderDeadline').value = ticket.fecha_limite;
+                document.getElementById('orderDescription').value = ticket.descripcion;
                 
                 document.getElementById('modalTitle').textContent = 'Editar Ticket';
             }
@@ -620,433 +436,128 @@ document.addEventListener('DOMContentLoaded', function() {
         orderModal.show();
     }
     
-    function handleOrderSubmit(e) {
+    async function handleOrderSubmit(e) {
         e.preventDefault();
         
-        const orderId = document.getElementById('orderId').value;
+        const ticketId = document.getElementById('orderId').value;
         const assignedToId = document.getElementById('assignedTo').value;
-        const assignedUser = assignedToId ? mockUsers.find(u => u.id == assignedToId) : null;
+        const assignedUser = assignedToId ? users.find(u => u.id_usuario == assignedToId) : null;
         
-        const orderData = {
-            title: document.getElementById('orderTitle').value,
-            type: document.getElementById('orderType').value,
-            assigned_to: assignedUser ? {
-                id: assignedUser.id,
-                name: assignedUser.name,
-                avatar: assignedUser.avatar
-            } : null,
-            status: document.getElementById('orderStatus').value,
-            deadline: document.getElementById('orderDeadline').value,
-            client: document.getElementById('orderClient').value,
-            description: document.getElementById('orderDescription').value,
-            priority: document.getElementById('priority').value
+        const ticketData = {
+            titulo: document.getElementById('orderTitle').value,
+            categoria: document.getElementById('orderType').value,
+            id_usuario_asignado: assignedToId || null,
+            estado: document.getElementById('orderStatus').value,
+            fecha_limite: document.getElementById('orderDeadline').value,
+            id_cliente_entregable: parseInt(document.getElementById('orderClient').value),
+            descripcion: document.getElementById('orderDescription').value,
+            id_creador: currentUser.id_usuario // Temporal - deberías obtener esto del usuario logueado
         };
         
- 
-        const fileList = document.getElementById('fileList');
-        const attachments = [];
-        
-        if (fileList.children.length > 0) {
-            for (const fileItem of fileList.children) {
-                const fileName = fileItem.querySelector('span').textContent;
-                const fileExt = fileName.split('.').pop();
-                
-                attachments.push({
-                    name: fileName,
-                    type: fileExt
-                });
-            }
-        }
-        
-        if(orderId) {
+        try {
+            if(ticketId) {
+                // Actualizar ticket existente
+                const { data, error } = await supabase
+                    .from('ticket')
+                    .update(ticketData)
+                    .eq('id_ticket', ticketId)
+                    .select();
 
-            const index = mockOrders.findIndex(o => o.id === orderId);
-            if(index !== -1) {
+                if (error) throw error;
 
-                if (mockOrders[index].status !== orderData.status) {
-                    const timelineEntry = {
-                        date: new Date().toISOString(),
-                        action: 'status_change',
-                        user: 'Ana Martínez',
-                        from_status: mockOrders[index].status,
-                        to_status: orderData.status
-                    };
-                    
-                    if (!mockOrders[index].timeline) {
-                        mockOrders[index].timeline = [];
-                    }
-                    
-                    mockOrders[index].timeline.push(timelineEntry);
-                }
-                
-
-                orderData.comments = mockOrders[index].comments || [];
-                orderData.timeline = mockOrders[index].timeline || [];
-                orderData.attachments = attachments.length > 0 ? attachments : (mockOrders[index].attachments || []);
-                orderData.created_date = mockOrders[index].created_date;
-                orderData.created_by = mockOrders[index].created_by;
-                
-                mockOrders[index] = { ...mockOrders[index], ...orderData };
                 showAlert('Ticket actualizado con éxito', 'success');
-            }
-        } else {
+            } else {
+                // Crear nuevo ticket
+                const { data, error } = await supabase
+                    .from('ticket')
+                    .insert([{
+                        ...ticketData,
+                        fecha_creacion: new Date().toISOString()
+                    }])
+                    .select();
 
-            const newId = `TKT-${new Date().getFullYear()}-${mockOrders.length + 38}`;
-            const newOrder = {
-                id: newId,
-                ...orderData,
-                created_date: new Date().toISOString().split('T')[0],
-                created_by: {
-                    id: 1,
-                    name: 'Ana Martínez',
-                    avatar: 'AM'
-                },
-                attachments: attachments,
-                comments: [],
-                timeline: [
-                    { date: new Date().toISOString(), action: 'created', user: 'Ana Martínez' }
-                ]
-            };
-            
+                if (error) throw error;
 
-            if (assignedUser) {
-                newOrder.timeline.push({
-                    date: new Date().toISOString(),
-                    action: 'assigned',
-                    user: 'Ana Martínez',
-                    assignee: assignedUser.name
-                });
+                showAlert('Ticket creado con éxito', 'success');
             }
             
-            mockOrders.unshift(newOrder);
-            showAlert('Ticket creado con éxito', 'success');
-        }
-        
-        orderModal.hide();
-        renderOrders();
-        if (document.querySelector('.tab-btn.active').getAttribute('data-view') === 'calendar') {
-            renderCalendar();
-        }
-    }
-    
-    window.viewOrderDetails = function(orderId) {
-        const order = mockOrders.find(o => o.id === orderId);
-        if (!order) return;
-        
-
-        document.getElementById('viewOrderId').textContent = order.id;
-        document.getElementById('viewOrderTitle').textContent = order.title;
-        document.getElementById('viewOrderType').textContent = getTypeName(order.type);
-        document.getElementById('viewOrderType').className = `type-badge ${order.type}`;
-        document.getElementById('viewOrderStatus').textContent = getStatusName(order.status);
-        document.getElementById('viewOrderStatus').className = `status-badge ${order.status}`;
-        document.getElementById('viewOrderPriority').textContent = getPriorityName(order.priority);
-        document.getElementById('viewOrderPriority').className = `priority-badge ${order.priority}`;
-        document.getElementById('viewOrderClient').textContent = order.client;
-        document.getElementById('viewAssignedTo').textContent = order.assigned_to ? order.assigned_to.name : 'No asignado';
-        document.getElementById('viewCreatedBy').textContent = order.created_by ? order.created_by.name : 'Sistema';
-        document.getElementById('viewCreatedDate').textContent = formatDate(order.created_date);
-        document.getElementById('viewDeadline').textContent = formatDate(order.deadline);
-        document.getElementById('viewDescription').textContent = order.description;
-        
-
-        const attachmentsList = document.getElementById('viewAttachmentsList');
-        attachmentsList.innerHTML = '';
-        
-        if (order.attachments && order.attachments.length > 0) {
-            order.attachments.forEach(file => {
-                const icon = getFileIcon(file.type);
-                const attachmentItem = document.createElement('div');
-                attachmentItem.className = 'attachment-item';
-                attachmentItem.innerHTML = `
-                    <i class="${icon}"></i>
-                    <a href="#" onclick="return false;">${file.name}</a>
-                `;
-                attachmentsList.appendChild(attachmentItem);
-            });
-        } else {
-            document.getElementById('viewAttachments').style.display = 'none';
-        }
-        
-
-        const timeline = document.getElementById('orderTimeline');
-        timeline.innerHTML = '';
-        
-        if (order.timeline && order.timeline.length > 0) {
-            order.timeline.forEach(event => {
-                const timelineItem = document.createElement('div');
-                timelineItem.className = 'timeline-item';
-                
-                let iconClass = '';
-                let actionText = '';
-                
-                switch(event.action) {
-                    case 'created':
-                        iconClass = 'fas fa-plus';
-                        actionText = `<strong>${event.user}</strong> creó el ticket`;
-                        break;
-                    case 'assigned':
-                        iconClass = 'fas fa-user-check';
-                        actionText = `<strong>${event.user}</strong> asignó el ticket a <strong>${event.assignee}</strong>`;
-                        break;
-                    case 'status_change':
-                        iconClass = 'fas fa-sync-alt';
-                        actionText = `<strong>${event.user}</strong> cambió el estado de <strong>${getStatusName(event.from_status)}</strong> a <strong>${getStatusName(event.to_status)}</strong>`;
-                        break;
-                    case 'comment':
-                        iconClass = 'fas fa-comment';
-                        actionText = `<strong>${event.user}</strong> agregó un comentario`;
-                        break;
-                    case 'attachment':
-                        iconClass = 'fas fa-paperclip';
-                        actionText = `<strong>${event.user}</strong> adjuntó un archivo: ${event.file_name}`;
-                        break;
-                }
-                
-                timelineItem.innerHTML = `
-                    <div class="timeline-icon bg-purple">
-                        <i class="${iconClass}"></i>
-                    </div>
-                    <div class="timeline-content">
-                        <p>${actionText}</p>
-                        <span class="timeline-date">${formatDateTime(event.date)}</span>
-                    </div>
-                `;
-                
-                timeline.appendChild(timelineItem);
-            });
-        } else {
-            timeline.innerHTML = '<p class="text-center text-muted">No hay eventos en el historial</p>';
-        }
-        
-
-        const commentsContainer = document.getElementById('viewCommentsContainer');
-        commentsContainer.innerHTML = '';
-        
-        if (order.comments && order.comments.length > 0) {
-            order.comments.forEach(comment => {
-                const commentElement = document.createElement('div');
-                commentElement.className = 'comment';
-                commentElement.innerHTML = `
-                    <div class="comment-avatar">${comment.user.avatar}</div>
-                    <div class="comment-content">
-                        <div class="comment-header">
-                            <span class="comment-author">${comment.user.name}</span>
-                            <span class="comment-date">${formatDateTime(comment.date)}</span>
-                        </div>
-                        <p class="comment-text">${comment.text}</p>
-                    </div>
-                `;
-                commentsContainer.appendChild(commentElement);
-            });
-        } else {
-            commentsContainer.innerHTML = '<p class="text-center text-muted">No hay comentarios</p>';
-        }
-        
-
-        setupStatusActions(order);
-        
-        viewOrderModal.show();
-    };
-    
-    function setupStatusActions(order) {
-        const statusActions = document.getElementById('statusActions');
-        statusActions.innerHTML = '';
-        
-        const currentStatus = order.status;
-        
-
-        const currentUserRole = 'Admin'; 
-        
-        if (currentUserRole === 'Admin') {
-            switch (currentStatus) {
-                case 'created':
-                    addStatusButton(statusActions, order.id, 'assigned', 'Asignar', 'fas fa-user-check');
-                    break;
-                case 'assigned':
-
-                    break;
-                case 'in-progress':
-
-                    break;
-                case 'review':
-                    addStatusButton(statusActions, order.id, 'approved', 'Aprobar', 'fas fa-check', 'success');
-                    addStatusButton(statusActions, order.id, 'rejected', 'Rechazar', 'fas fa-times', 'danger');
-                    break;
-                case 'approved':
-                    addStatusButton(statusActions, order.id, 'delivered', 'Marcar como Entregado', 'fas fa-paper-plane', 'info');
-                    break;
+            orderModal.hide();
+            await fetchTickets();
+            if (document.querySelector('.tab-btn.active').getAttribute('data-view') === 'calendar') {
+                renderCalendar();
             }
-        } else if (currentUserRole === 'Creativo') {
-            switch (currentStatus) {
-                case 'assigned':
-                    addStatusButton(statusActions, order.id, 'in-progress', 'Iniciar Trabajo', 'fas fa-play', 'info');
-                    break;
-                case 'in-progress':
-                    addStatusButton(statusActions, order.id, 'review', 'Enviar a Revisión', 'fas fa-clipboard-check', 'warning');
-                    break;
-                case 'rejected':
-                    addStatusButton(statusActions, order.id, 'in-progress', 'Reanudar Trabajo', 'fas fa-redo', 'info');
-                    break;
+        } catch (error) {
+            console.error('Error al guardar ticket:', error);
+            showAlert(`Error al guardar ticket: ${error.message}`, 'danger');
+        }
+    }
+    
+    async function viewOrderDetails(ticketId) {
+        try {
+            const { data: ticket, error } = await supabase
+                .from('ticket')
+                .select('*')
+                .eq('id_ticket', ticketId)
+                .single();
+
+            if (error) throw error;
+
+            if (!ticket) {
+                showAlert('Ticket no encontrado', 'warning');
+                return;
             }
+
+            const assignedUser = users.find(u => u.id_usuario === ticket.id_usuario_asignado);
+            
+            document.getElementById('viewOrderId').textContent = ticket.id_ticket;
+            document.getElementById('viewOrderTitle').textContent = ticket.titulo;
+            document.getElementById('viewOrderType').textContent = getTypeName(ticket.categoria);
+            document.getElementById('viewOrderType').className = `type-badge ${ticket.categoria}`;
+            document.getElementById('viewOrderStatus').textContent = getStatusName(ticket.estado);
+            document.getElementById('viewOrderStatus').className = `status-badge ${ticket.estado}`;
+            document.getElementById('viewOrderPriority').textContent = getPriorityName(ticket.priority || 'medium');
+            document.getElementById('viewOrderPriority').className = `priority-badge ${ticket.priority || 'medium'}`;
+            document.getElementById('viewOrderClient').textContent = ticket.id_cliente_entregable;
+            document.getElementById('viewAssignedTo').textContent = assignedUser ? assignedUser.nombre : 'No asignado';
+            document.getElementById('viewCreatedBy').textContent = 'Sistema'; // Podrías hacer un JOIN para obtener el nombre del creador
+            document.getElementById('viewCreatedDate').textContent = formatDate(ticket.fecha_creacion);
+            document.getElementById('viewDeadline').textContent = formatDate(ticket.fecha_limite);
+            document.getElementById('viewDescription').textContent = ticket.descripcion;
+            
+            viewOrderModal.show();
+        } catch (error) {
+            console.error('Error al obtener detalles del ticket:', error);
+            showAlert(`Error al cargar detalles del ticket: ${error.message}`, 'danger');
         }
     }
     
-    function addStatusButton(container, orderId, newStatus, label, icon, btnClass = 'primary') {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `btn-${btnClass}`;
-        btn.innerHTML = `<i class="${icon}"></i> ${label}`;
-        btn.addEventListener('click', () => updateOrderStatus(orderId, newStatus));
-        container.appendChild(btn);
-    }
-    
-    function updateOrderStatus(orderId, newStatus) {
-        const orderIndex = mockOrders.findIndex(o => o.id === orderId);
-        if (orderIndex === -1) return;
+    async function confirmDeleteOrder() {
+        const ticketId = document.getElementById('deleteOrderId').textContent;
         
-        const oldStatus = mockOrders[orderIndex].status;
-        mockOrders[orderIndex].status = newStatus;
-        
- 
-        if (!mockOrders[orderIndex].timeline) {
-            mockOrders[orderIndex].timeline = [];
+        try {
+            const { error } = await supabase
+                .from('ticket')
+                .delete()
+                .eq('id_ticket', ticketId);
+
+            if (error) throw error;
+
+            deleteConfirmModal.hide();
+            await fetchTickets();
+            showAlert('Ticket eliminado con éxito', 'success');
+        } catch (error) {
+            console.error('Error al eliminar ticket:', error);
+            showAlert(`Error al eliminar ticket: ${error.message}`, 'danger');
         }
-        
-        mockOrders[orderIndex].timeline.push({
-            date: new Date().toISOString(),
-            action: 'status_change',
-            user: 'Ana Martínez',
-            from_status: oldStatus,
-            to_status: newStatus
-        });
-        
-        viewOrderModal.hide();
-        renderOrders();
-        showAlert(`Estado del ticket actualizado a "${getStatusName(newStatus)}"`, 'success');
     }
     
     function handleEditButtonClick() {
-        const orderId = document.getElementById('viewOrderId').textContent;
+        const ticketId = document.getElementById('viewOrderId').textContent;
         viewOrderModal.hide();
         
-
         setTimeout(() => {
-            editOrder(orderId);
+            editOrder(ticketId);
         }, 400);
-    }
-    
-    function addComment() {
-        const orderId = document.getElementById('orderId').value;
-        const commentText = document.getElementById('newComment').value;
-        
-        if (!commentText.trim()) return;
-        
-        const orderIndex = mockOrders.findIndex(o => o.id === orderId);
-        if (orderIndex === -1) return;
-        
-        if (!mockOrders[orderIndex].comments) {
-            mockOrders[orderIndex].comments = [];
-        }
-        
-
-        const newComment = {
-            id: Date.now(),
-            user: { id: 1, name: 'Ana Martínez', avatar: 'AM' },
-            date: new Date().toISOString(),
-            text: commentText
-        };
-        
-        mockOrders[orderIndex].comments.push(newComment);
-        
-
-        if (!mockOrders[orderIndex].timeline) {
-            mockOrders[orderIndex].timeline = [];
-        }
-        
-        mockOrders[orderIndex].timeline.push({
-            date: new Date().toISOString(),
-            action: 'comment',
-            user: 'Ana Martínez' 
-        });
-        
-
-        const commentsContainer = document.getElementById('commentsContainer');
-        const commentElement = document.createElement('div');
-        commentElement.className = 'comment';
-        commentElement.innerHTML = `
-            <div class="comment-avatar">${newComment.user.avatar}</div>
-            <div class="comment-content">
-                <div class="comment-header">
-                    <span class="comment-author">${newComment.user.name}</span>
-                    <span class="comment-date">${formatDateTime(newComment.date)}</span>
-                </div>
-                <p class="comment-text">${newComment.text}</p>
-            </div>
-        `;
-        commentsContainer.appendChild(commentElement);
-        
-
-        document.getElementById('newComment').value = '';
-        
-
-        document.getElementById('commentsSection').style.display = 'block';
-    }
-    
-    function addViewComment() {
-        const orderId = document.getElementById('viewOrderId').textContent;
-        const commentText = document.getElementById('viewNewComment').value;
-        
-        if (!commentText.trim()) return;
-        
-        const orderIndex = mockOrders.findIndex(o => o.id === orderId);
-        if (orderIndex === -1) return;
-        
-        if (!mockOrders[orderIndex].comments) {
-            mockOrders[orderIndex].comments = [];
-        }
-        
-
-        const newComment = {
-            id: Date.now(),
-            user: { id: 1, name: 'Ana Martínez', avatar: 'AM' }, 
-            date: new Date().toISOString(),
-            text: commentText
-        };
-        
-        mockOrders[orderIndex].comments.push(newComment);
-        
-
-        if (!mockOrders[orderIndex].timeline) {
-            mockOrders[orderIndex].timeline = [];
-        }
-        
-        mockOrders[orderIndex].timeline.push({
-            date: new Date().toISOString(),
-            action: 'comment',
-            user: 'Ana Martínez' 
-        });
-        
-
-        const commentsContainer = document.getElementById('viewCommentsContainer');
-        const commentElement = document.createElement('div');
-        commentElement.className = 'comment';
-        commentElement.innerHTML = `
-            <div class="comment-avatar">${newComment.user.avatar}</div>
-            <div class="comment-content">
-                <div class="comment-header">
-                    <span class="comment-author">${newComment.user.name}</span>
-                    <span class="comment-date">${formatDateTime(newComment.date)}</span>
-                </div>
-                <p class="comment-text">${newComment.text}</p>
-            </div>
-        `;
-        commentsContainer.appendChild(commentElement);
-        
-
-        document.getElementById('viewNewComment').value = '';
-        
-        showAlert('Comentario agregado', 'success');
     }
     
     function filterOrders() {
@@ -1056,30 +567,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateFrom = dateFromFilter.value ? new Date(dateFromFilter.value) : null;
         const dateTo = dateToFilter.value ? new Date(dateToFilter.value) : null;
         
-        const filtered = mockOrders.filter(order => {
-
+        const filtered = tickets.filter(ticket => {
+            const assignedUser = users.find(u => u.id_usuario === ticket.id_usuario_asignado);
+            const assignedName = assignedUser ? assignedUser.nombre.toLowerCase() : '';
+            
             const matchesSearch = !searchTerm ||
-                order.title.toLowerCase().includes(searchTerm) ||
-                order.id.toLowerCase().includes(searchTerm) ||
-                (order.assigned_to && order.assigned_to.name.toLowerCase().includes(searchTerm)) ||
-                order.client.toLowerCase().includes(searchTerm);
+                ticket.titulo.toLowerCase().includes(searchTerm) ||
+                ticket.id_ticket.toString().toLowerCase().includes(searchTerm) ||
+                assignedName.includes(searchTerm) ||
+                ticket.id_cliente_entregable.toString().toLowerCase().includes(searchTerm);
             
-
-            const matchesStatus = !statusValue || order.status === statusValue;
+            const matchesStatus = !statusValue || ticket.estado === statusValue;
             
-
-            const matchesType = !typeValue || order.type === typeValue;
+            const matchesType = !typeValue || ticket.categoria === typeValue;
             
-
             let matchesDate = true;
-            const orderDate = new Date(order.deadline);
+            const ticketDate = new Date(ticket.fecha_limite);
             
             if (dateFrom && dateTo) {
-                matchesDate = orderDate >= dateFrom && orderDate <= dateTo;
+                matchesDate = ticketDate >= dateFrom && ticketDate <= dateTo;
             } else if (dateFrom) {
-                matchesDate = orderDate >= dateFrom;
+                matchesDate = ticketDate >= dateFrom;
             } else if (dateTo) {
-                matchesDate = orderDate <= dateTo;
+                matchesDate = ticketDate <= dateTo;
             }
             
             return matchesSearch && matchesStatus && matchesType && matchesDate;
@@ -1088,64 +598,82 @@ document.addEventListener('DOMContentLoaded', function() {
         renderOrders(filtered);
     }
     
-    function getFileIcon(fileType) {
-        const iconMap = {
-            'pdf': 'far fa-file-pdf',
-            'doc': 'far fa-file-word',
-            'docx': 'far fa-file-word',
-            'xls': 'far fa-file-excel',
-            'xlsx': 'far fa-file-excel',
-            'ppt': 'far fa-file-powerpoint',
-            'pptx': 'far fa-file-powerpoint',
-            'jpg': 'far fa-file-image',
-            'jpeg': 'far fa-file-image',
-            'png': 'far fa-file-image',
-            'gif': 'far fa-file-image',
-            'zip': 'far fa-file-archive',
-            'rar': 'far fa-file-archive',
-            'ai': 'far fa-file-image',
-            'psd': 'far fa-file-image',
-            'txt': 'far fa-file-alt',
-            'mp4': 'far fa-file-video',
-            'mp3': 'far fa-file-audio'
+    // Funciones auxiliares
+    function getTypeName(type) {
+        const types = {
+            'design': 'Diseño Gráfico',
+            'web': 'Desarrollo Web',
+            'video': 'Producción Audiovisual',
+            'copy': 'Copywriting',
+            'social': 'Pauta en Redes'
         };
-        
-        return iconMap[fileType] || 'far fa-file';
+        return types[type] || type;
     }
     
-    function formatDateTime(dateString) {
-        if (!dateString) return '';
-        
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    function getStatusName(status) {
+        const statuses = {
+            'created': 'Creado',
+            'assigned': 'Asignado',
+            'in-progress': 'En Proceso',
+            'review': 'En Revisión',
+            'approved': 'Aprobado',
+            'delivered': 'Entregado'
+        };
+        return statuses[status] || status;
     }
     
-    function confirmDeleteOrder() {
-        const orderId = document.getElementById('deleteOrderId').textContent;
-        mockOrders = mockOrders.filter(order => order.id !== orderId);
-        
-        deleteConfirmModal.hide();
-        renderOrders();
-        showAlert('Ticket eliminado con éxito', 'success');
+    function getPriorityName(priority) {
+        const priorities = {
+            'low': 'Baja',
+            'medium': 'Media',
+            'high': 'Alta',
+            'urgent': 'Urgente'
+        };
+        return priorities[priority] || priority;
     }
     
-
-    window.viewOrderDetails = function(orderId) {
-        viewOrderDetails(orderId);
+    function formatDate(dateStr) {
+        if (!dateStr) return 'N/A';
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('es-ES');
+        } catch {
+            return dateStr;
+        }
+    }
+    
+    function getUserInitials(name) {
+        if (!name) return '??';
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+    
+    function showAlert(message, type = 'info') {
+        const alertContainer = document.getElementById('alertContainer');
+        if (!alertContainer) {
+            console.error('Alert container no encontrado');
+            return;
+        }
+        
+        alertContainer.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        setTimeout(() => alertContainer.innerHTML = '', 5000);
+    }
+    
+    // Funciones globales para los botones
+    window.viewOrderDetails = function(ticketId) {
+        viewOrderDetails(ticketId);
     };
     
-    window.editOrder = function(orderId) {
-        showOrderModal(orderId);
+    window.editOrder = function(ticketId) {
+        showOrderModal(ticketId);
     };
     
-    window.deleteOrder = function(orderId) {
-        document.getElementById('deleteOrderId').textContent = orderId;
+    window.deleteOrder = function(ticketId) {
+        document.getElementById('deleteOrderId').textContent = ticketId;
         deleteConfirmModal.show();
     };
 });
