@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos de Ropa</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="cart-icon" id="cartButton">🛒 <span id="cartCount">0</span></div>
+        <h1>Inventario de Productos</h1>
+        
+        <table class="product-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Color</th>
+                    <th>Talla</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Añadir</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($productos)): ?>
+                    <?php foreach ($productos as $row): ?>
+                        <?php
+                        $stockClass = '';
+                        if ($row["stock"] > 30) {
+                            $stockClass = 'stock-high';
+                        } elseif ($row["stock"] > 10) {
+                            $stockClass = 'stock-medium';
+                        } else {
+                            $stockClass = 'stock-low';
+                        }
+                        ?>
+                        <tr>
+                            <td><?php echo $row['id']; ?></td>
+                            <td><?php echo $row['nombre']; ?></td>
+                            <td><?php echo $row['color']; ?></td>
+                            <td><?php echo $row['talla']; ?></td>
+                            <td class='price'>$<?php echo number_format($row['precio'], 2); ?></td>
+                            <td class='<?php echo $stockClass; ?>'><?php echo $row['stock']; ?></td>
+                            <td><button class="add-to-cart" data-id="<?php echo $row['id']; ?>" 
+                                       data-nombre="<?php echo $row['nombre']; ?>"
+                                       data-color="<?php echo $row['color']; ?>"
+                                       data-talla="<?php echo $row['talla']; ?>"
+                                       data-precio="<?php echo $row['precio']; ?>">+</button></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan='7' style='text-align: center;'>No hay productos registrados</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal del Carrito -->
+    <div class="cart-modal" id="cartModal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Tu Carrito</h2>
+            <div id="cartItems"></div>
+            <div id="cartSummary"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
