@@ -1,355 +1,392 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tickets - Gestión de Tickets</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tickets - Gestión de Tickets</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <link href="css/styles.css" rel="stylesheet" />
 </head>
+
 <body>
-    <div class="page-wrapper">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-layer-group"></i> TaskFlow
-            </div>
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
-                <li class="active"><a href="work-orders.html"><i class="fas fa-tasks"></i> Tickets</a></li>
-                <li><a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a></li>
-                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reportes</a></li>
-                <li><a href="review-deliverables.html"><i class="fas fa-clipboard-check"></i> Revisar Entregables</a></li>
-                <!-- <li><a href="settings.html"><i class="fas fa-cogs"></i> Configuración</a></li> -->
-                <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-            </ul>
-        </aside>
+  <div class="page-wrapper">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <i class="fas fa-layer-group"></i> TaskFlow
+      </div>
+      <ul class="sidebar-menu">
+        <li>
+          <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
+        </li>
+        <li class="active">
+          <a href="work-orders.html"><i class="fas fa-tasks"></i> Tickets</a>
+        </li>
+        <li>
+          <a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a>
+        </li>
+        <a href="clientes.html"><i class="fas fa-building"></i> Clientes</a>
+        </li>
+        <li>
+          <a href="reports.html"><i class="fas fa-chart-bar"></i> Reportes</a>
+        </li>
+        <li>
+          <a href="review-deliverables.html"><i class="fas fa-clipboard-check"></i> Revisar Entregables</a>
+        </li>
+        <!-- <li><a href="settings.html"><i class="fas fa-cogs"></i> Configuración</a></li> -->
+        <li>
+          <a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+        </li>
+      </ul>
+    </aside>
 
-        <main class="main-content">
-            <div class="content-header">
-                <h1 class="page-title">Tickets</h1>
-                <button id="btnNewOrder" class="btn-new">
-                    <i class="fas fa-plus"></i> Nuevo Ticket
+    <main class="main-content">
+      <div class="content-header">
+        <h1 class="page-title">Tickets</h1>
+        <button id="btnNewOrder" class="btn-new">
+          <i class="fas fa-plus"></i> Nuevo Ticket
+        </button>
+      </div>
+
+      <div class="card-container">
+        <div class="filter-controls">
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" class="search-input" placeholder="Buscar por título, ID o creativo..." />
+          </div>
+          <div class="filter-group">
+            <select id="statusFilter" class="filter-select">
+              <option value="">Todos los estados</option>
+              <option value="created">Creado</option>
+              <option value="assigned">Asignado</option>
+              <option value="in-progress">En Proceso</option>
+              <option value="review">En Revisión</option>
+              <option value="approved">Aprobado</option>
+              <option value="delivered">Entregado/Publicado</option>
+            </select>
+            <select id="typeFilter" class="filter-select">
+              <option value="">Todas las categorías</option>
+              <option value="design">Diseño Gráfico</option>
+              <option value="web">Desarrollo Web</option>
+              <option value="video">Producción Audiovisual</option>
+              <option value="copy">Copywriting</option>
+              <option value="social">Pauta en Redes</option>
+            </select>
+            <div class="date-filter">
+              <input type="date" id="dateFrom" class="date-input" />
+              <span>hasta</span>
+              <input type="date" id="dateTo" class="date-input" />
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs-container">
+          <div class="tabs">
+            <button class="tab-btn active" data-view="list">
+              <i class="fas fa-list"></i> Lista
+            </button>
+            <button class="tab-btn" data-view="grid">
+              <i class="fas fa-th-large"></i> Tarjetas
+            </button>
+            <button class="tab-btn" data-view="calendar">
+              <i class="fas fa-calendar-alt"></i> Calendario
+            </button>
+          </div>
+        </div>
+
+        <div class="view-container">
+          <div id="listView" class="view active">
+            <div class="table-wrapper">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>ID <i class="fas fa-sort"></i></th>
+                    <th>Título <i class="fas fa-sort"></i></th>
+                    <th>Categoría <i class="fas fa-sort"></i></th>
+                    <th>Asignado a <i class="fas fa-sort"></i></th>
+                    <th>Estado <i class="fas fa-sort"></i></th>
+                    <th>Fecha Creación <i class="fas fa-sort"></i></th>
+                    <th>Fecha Límite <i class="fas fa-sort"></i></th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="orderTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button class="pagination-btn" disabled>
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span class="pagination-info">Página 1 de 5</span>
+              <button class="pagination-btn">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="gridView" class="view">
+            <div class="orders-grid" id="ordersGrid"></div>
+            <div class="pagination">
+              <button class="pagination-btn" disabled>
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span class="pagination-info">Página 1 de 5</span>
+              <button class="pagination-btn">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="calendarView" class="view">
+            <div class="calendar-controls">
+              <button class="btn-icon">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <h3 class="calendar-title">Junio 2023</h3>
+              <button class="btn-icon">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="calendar-grid">
+              <div class="calendar-header">
+                <div>Lun</div>
+                <div>Mar</div>
+                <div>Mié</div>
+                <div>Jue</div>
+                <div>Vie</div>
+                <div>Sáb</div>
+                <div>Dom</div>
+              </div>
+              <div class="calendar-days" id="calendarDays"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Nuevo Ticket</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="orderForm">
+          <div class="modal-body">
+            <input type="hidden" id="orderId" />
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="orderTitle">Título</label>
+                  <input type="text" id="orderTitle" required />
+                </div>
+                <div class="form-group">
+                  <label for="orderType">Categoría</label>
+                  <select id="orderType" required>
+                    <option value="">Seleccionar categoría...</option>
+                    <option value="design">Diseño Gráfico</option>
+                    <option value="web">Desarrollo Web</option>
+                    <option value="video">Producción Audiovisual</option>
+                    <option value="copy">Copywriting</option>
+                    <option value="social">Pauta en Redes</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="assignedTo">Asignar a</label>
+                  <select id="assignedTo">
+                    <option value="">Sin asignar</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="orderStatus">Estado</label>
+                  <select id="orderStatus" required>
+                    <option value="created">Creado</option>
+                    <option value="assigned">Asignado</option>
+                    <option value="in-progress">En Proceso</option>
+                    <option value="review">En Revisión</option>
+                    <option value="approved">Aprobado</option>
+                    <option value="delivered">Entregado/Publicado</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="priority">Prioridad</label>
+                  <select id="priority" required>
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                    <option value="urgent">Urgente</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="orderClient">Cliente</label>
+                  <select id="orderClient" required>
+                    <option value="">Seleccionar cliente...</option>
+                  </select>
+                  <div class="form-group">
+                    <label for="orderDeadline">Fecha Límite</label>
+                    <input type="date" id="orderDeadline" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="fileAttachments">Adjuntos</label>
+                    <div class="file-upload-container">
+                      <input type="file" id="fileAttachments" multiple />
+                      <div class="file-upload-button">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Seleccionar archivos</span>
+                      </div>
+                    </div>
+                    <div id="fileList" class="file-list"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="orderDescription">Descripción</label>
+                <textarea id="orderDescription" rows="5" required></textarea>
+              </div>
+              <div class="form-group" id="commentsSection" style="display: none">
+                <label>Comentarios</label>
+                <div class="comments-container" id="commentsContainer"></div>
+                <div class="new-comment">
+                  <textarea id="newComment" placeholder="Agregar un comentario..."></textarea>
+                  <button type="button" id="addComment" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" data-bs-dismiss="modal">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary">Guardar</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="viewOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            Detalle de Ticket #<span id="viewOrderId"></span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="order-header">
+            <h3 id="viewOrderTitle"></h3>
+            <div class="order-meta">
+              <span class="type-badge" id="viewOrderType"></span>
+              <span class="status-badge" id="viewOrderStatus"></span>
+              <span class="priority-badge" id="viewOrderPriority"></span>
+            </div>
+          </div>
+
+          <div class="order-details">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="detail-group">
+                  <label>Cliente:</label>
+                  <p id="viewOrderClient"></p>
+                </div>
+                <div class="detail-group">
+                  <label>Asignado a:</label>
+                  <p id="viewAssignedTo"></p>
+                </div>
+                <div class="detail-group">
+                  <label>Creado por:</label>
+                  <p id="viewCreatedBy"></p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="detail-group">
+                  <label>Fecha Creación:</label>
+                  <p id="viewCreatedDate"></p>
+                </div>
+                <div class="detail-group">
+                  <label>Fecha Límite:</label>
+                  <p id="viewDeadline"></p>
+                </div>
+              </div>
+            </div>
+            <div class="detail-group">
+              <label>Descripción:</label>
+              <div class="description-box" id="viewDescription"></div>
+            </div>
+            <div class="detail-group" id="viewAttachments">
+              <label>Archivos Adjuntos:</label>
+              <div class="attachments-list" id="viewAttachmentsList"></div>
+            </div>
+
+            <div class="order-timeline">
+              <h4>Historial</h4>
+              <div class="timeline" id="orderTimeline"></div>
+            </div>
+
+            <div class="order-comments">
+              <h4>Comentarios</h4>
+              <div class="comments-container" id="viewCommentsContainer"></div>
+              <div class="new-comment">
+                <textarea id="viewNewComment" placeholder="Agregar un comentario..."></textarea>
+                <button type="button" id="viewAddComment" class="btn-primary">
+                  <i class="fas fa-paper-plane"></i>
                 </button>
+              </div>
             </div>
-
-            <div class="card-container">
-                <div class="filter-controls">
-                    <div class="search-bar">
-                        <i class="fas fa-search"></i>
-                        <input type="text" class="search-input" placeholder="Buscar por título, ID o creativo...">
-                    </div>
-                    <div class="filter-group">
-                        <select id="statusFilter" class="filter-select">
-                            <option value="">Todos los estados</option>
-                            <option value="created">Creado</option>
-                            <option value="assigned">Asignado</option>
-                            <option value="in-progress">En Proceso</option>
-                            <option value="review">En Revisión</option>
-                            <option value="approved">Aprobado</option>
-                            <option value="delivered">Entregado/Publicado</option>
-                        </select>
-                        <select id="typeFilter" class="filter-select">
-                            <option value="">Todas las categorías</option>
-                            <option value="design">Diseño Gráfico</option>
-                            <option value="web">Desarrollo Web</option>
-                            <option value="video">Producción Audiovisual</option>
-                            <option value="copy">Copywriting</option>
-                            <option value="social">Pauta en Redes</option>
-                        </select>
-                        <div class="date-filter">
-                            <input type="date" id="dateFrom" class="date-input">
-                            <span>hasta</span>
-                            <input type="date" id="dateTo" class="date-input">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tabs-container">
-                    <div class="tabs">
-                        <button class="tab-btn active" data-view="list">
-                            <i class="fas fa-list"></i> Lista
-                        </button>
-                        <button class="tab-btn" data-view="grid">
-                            <i class="fas fa-th-large"></i> Tarjetas
-                        </button>
-                        <button class="tab-btn" data-view="calendar">
-                            <i class="fas fa-calendar-alt"></i> Calendario
-                        </button>
-                    </div>
-                </div>
-
-                <div class="view-container">
-                    <div id="listView" class="view active">
-                        <div class="table-wrapper">
-                            <table class="custom-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID <i class="fas fa-sort"></i></th>
-                                        <th>Título <i class="fas fa-sort"></i></th>
-                                        <th>Categoría <i class="fas fa-sort"></i></th>
-                                        <th>Asignado a <i class="fas fa-sort"></i></th>
-                                        <th>Estado <i class="fas fa-sort"></i></th>
-                                        <th>Fecha Creación <i class="fas fa-sort"></i></th>
-                                        <th>Fecha Límite <i class="fas fa-sort"></i></th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="orderTableBody">
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="pagination">
-                            <button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
-                            <span class="pagination-info">Página 1 de 5</span>
-                            <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-
-                    <div id="gridView" class="view">
-                        <div class="orders-grid" id="ordersGrid">
-                        </div>
-                        <div class="pagination">
-                            <button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
-                            <span class="pagination-info">Página 1 de 5</span>
-                            <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-
-                    <div id="calendarView" class="view">
-                        <div class="calendar-controls">
-                            <button class="btn-icon"><i class="fas fa-chevron-left"></i></button>
-                            <h3 class="calendar-title">Junio 2023</h3>
-                            <button class="btn-icon"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                        <div class="calendar-grid">
-                            <div class="calendar-header">
-                                <div>Lun</div>
-                                <div>Mar</div>
-                                <div>Mié</div>
-                                <div>Jue</div>
-                                <div>Vie</div>
-                                <div>Sáb</div>
-                                <div>Dom</div>
-                            </div>
-                            <div class="calendar-days" id="calendarDays">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Nuevo Ticket</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="orderForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="orderId">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="orderTitle">Título</label>
-                                    <input type="text" id="orderTitle" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="orderType">Categoría</label>
-                                    <select id="orderType" required>
-                                        <option value="">Seleccionar categoría...</option>
-                                        <option value="design">Diseño Gráfico</option>
-                                        <option value="web">Desarrollo Web</option>
-                                        <option value="video">Producción Audiovisual</option>
-                                        <option value="copy">Copywriting</option>
-                                        <option value="social">Pauta en Redes</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="assignedTo">Asignar a</label>
-                                    <select id="assignedTo">
-                                        <option value="">Sin asignar</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="orderStatus">Estado</label>
-                                    <select id="orderStatus" required>
-                                        <option value="created">Creado</option>
-                                        <option value="assigned">Asignado</option>
-                                        <option value="in-progress">En Proceso</option>
-                                        <option value="review">En Revisión</option>
-                                        <option value="approved">Aprobado</option>
-                                        <option value="delivered">Entregado/Publicado</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="priority">Prioridad</label>
-                                    <select id="priority" required>
-                                        <option value="low">Baja</option>
-                                        <option value="medium">Media</option>
-                                        <option value="high">Alta</option>
-                                        <option value="urgent">Urgente</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="orderClient">Cliente</label>
-                                    <input type="text" id="orderClient" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="orderDeadline">Fecha Límite</label>
-                                    <input type="date" id="orderDeadline" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="fileAttachments">Adjuntos</label>
-                                    <div class="file-upload-container">
-                                        <input type="file" id="fileAttachments" multiple>
-                                        <div class="file-upload-button">
-                                            <i class="fas fa-cloud-upload-alt"></i>
-                                            <span>Seleccionar archivos</span>
-                                        </div>
-                                    </div>
-                                    <div id="fileList" class="file-list"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="orderDescription">Descripción</label>
-                            <textarea id="orderDescription" rows="5" required></textarea>
-                        </div>
-                        <div class="form-group" id="commentsSection" style="display: none;">
-                            <label>Comentarios</label>
-                            <div class="comments-container" id="commentsContainer"></div>
-                            <div class="new-comment">
-                                <textarea id="newComment" placeholder="Agregar un comentario..."></textarea>
-                                <button type="button" id="addComment" class="btn-primary">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn-primary">Guardar</button>
-                    </div>
-                </form>
-            </div>
+          </div>
         </div>
-    </div>
-
-    <div class="modal fade" id="viewOrderModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Detalle de Ticket #<span id="viewOrderId"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="order-header">
-                        <h3 id="viewOrderTitle"></h3>
-                        <div class="order-meta">
-                            <span class="type-badge" id="viewOrderType"></span>
-                            <span class="status-badge" id="viewOrderStatus"></span>
-                            <span class="priority-badge" id="viewOrderPriority"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="order-details">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="detail-group">
-                                    <label>Cliente:</label>
-                                    <p id="viewOrderClient"></p>
-                                </div>
-                                <div class="detail-group">
-                                    <label>Asignado a:</label>
-                                    <p id="viewAssignedTo"></p>
-                                </div>
-                                <div class="detail-group">
-                                    <label>Creado por:</label>
-                                    <p id="viewCreatedBy"></p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="detail-group">
-                                    <label>Fecha Creación:</label>
-                                    <p id="viewCreatedDate"></p>
-                                </div>
-                                <div class="detail-group">
-                                    <label>Fecha Límite:</label>
-                                    <p id="viewDeadline"></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="detail-group">
-                            <label>Descripción:</label>
-                            <div class="description-box" id="viewDescription"></div>
-                        </div>
-                        <div class="detail-group" id="viewAttachments">
-                            <label>Archivos Adjuntos:</label>
-                            <div class="attachments-list" id="viewAttachmentsList"></div>
-                        </div>
-                        
-                        <div class="order-timeline">
-                            <h4>Historial</h4>
-                            <div class="timeline" id="orderTimeline">
-                            </div>
-                        </div>
-                        
-                        <div class="order-comments">
-                            <h4>Comentarios</h4>
-                            <div class="comments-container" id="viewCommentsContainer"></div>
-                            <div class="new-comment">
-                                <textarea id="viewNewComment" placeholder="Agregar un comentario..."></textarea>
-                                <button type="button" id="viewAddComment" class="btn-primary">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn-primary" id="editOrderBtn">Editar</button>
-                    <div class="status-actions" id="statusActions">
-                    </div>
-                </div>
-            </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-bs-dismiss="modal">
+            Cerrar
+          </button>
+          <button type="button" class="btn-primary" id="editOrderBtn">
+            Editar
+          </button>
+          <div class="status-actions" id="statusActions"></div>
         </div>
+      </div>
     </div>
+  </div>
 
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirmar Eliminación</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>¿Está seguro que desea eliminar el ticket <strong id="deleteOrderId"></strong>?</p>
-                    <p class="text-danger">Esta acción no se puede deshacer.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn-danger" id="confirmDelete">Eliminar</button>
-                </div>
-            </div>
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar Eliminación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+        <div class="modal-body">
+          <p>
+            ¿Está seguro que desea eliminar el ticket
+            <strong id="deleteOrderId"></strong>?
+          </p>
+          <p class="text-danger">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button type="button" class="btn-danger" id="confirmDelete">
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
 
+  <div id="alertContainer" class="alert-container"></div>
 
-    <div id="alertContainer" class="alert-container"></div>
-
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/work-orders.js"></script>
-    <script src="js/main.js"></script>   
-  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/work-orders.js"></script>
+  <script src="js/main.js"></script>
 </body>
+
 </html>
