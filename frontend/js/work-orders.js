@@ -114,11 +114,16 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!isAuthenticated) return;
 
     await getCurrentUser();
-    await fetchTickets();
+    
+    // CAMBIO: Cargar usuarios y clientes ANTES que los tickets
     await fetchUsers();
-    await fetchClients(); // Nueva función para cargar clientes
+    await fetchClients();
+    
+    // Ahora cargar los tickets después de tener usuarios y clientes
+    await fetchTickets();
+    
     populateAssigneeDropdown();
-    populateClientDropdown(); // Nueva función para poblar dropdown de clientes
+    populateClientDropdown();
     setupFileUpload();
     renderCalendar();
   }
@@ -173,7 +178,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (error) throw error;
 
       tickets = data || [];
-      renderOrders();
+      
+      // CAMBIO: Solo renderizar después de confirmar que tenemos usuarios cargados
+      if (users.length > 0) {
+        renderOrders();
+      }
     } catch (error) {
       console.error("Error al obtener tickets:", error);
       showAlert(`Error al cargar tickets: ${error.message}`, "danger");
