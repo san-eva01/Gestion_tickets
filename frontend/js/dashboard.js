@@ -1,10 +1,9 @@
-
 document.addEventListener('DOMContentLoaded', function() {
     initializeCharts();
     loadCalendarEvents();
     
     function initializeCharts() {
-   
+        // Gráfico de distribución de tickets centrado
         const orderDistributionCtx = document.getElementById('orderDistributionChart').getContext('2d');
         
         const orderDistributionData = {
@@ -28,13 +27,15 @@ document.addEventListener('DOMContentLoaded', function() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right',
+                    position: 'bottom', // Cambiado de 'right' a 'bottom'
                     labels: {
                         boxWidth: 15,
-                        padding: 15,
+                        padding: 10, // Reducido el padding
                         font: {
-                            size: 12
-                        }
+                            size: 11 // Ligeramente más pequeño
+                        },
+                        usePointStyle: true, // Hace los indicadores circulares
+                        pointStyle: 'circle'
                     }
                 },
                 tooltip: {
@@ -50,10 +51,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     boxPadding: 5
                 }
             },
-            cutout: '65%',
+            cutout: '60%', // Ligeramente más pequeño para dejar espacio a la leyenda
             animation: {
                 animateScale: true,
                 animateRotate: true
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         };
         
@@ -63,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
             options: orderDistributionOptions
         });
 
+        // Gráfico de productividad (si existe)
         if (document.getElementById('productivityChart')) {
             const productivityCtx = document.getElementById('productivityChart').getContext('2d');
             
@@ -100,48 +110,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function loadCalendarEvents() {
-
+        // Resto del código del calendario se mantiene igual
         const calendarContainer = document.getElementById('upcomingCalendar');
         if (!calendarContainer) return;
-
 
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth();
         const currentYear = currentDate.getFullYear();
         
- 
         document.getElementById('calendarTitle').textContent = new Date(currentYear, currentMonth).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
         
-      
         const firstDay = new Date(currentYear, currentMonth, 1);
         const lastDay = new Date(currentYear, currentMonth + 1, 0);
         
-   
         let startDayOfWeek = (firstDay.getDay() + 6) % 7;
         const daysInMonth = lastDay.getDate();
         
-      
         const calendarDays = document.getElementById('calendarDays');
         calendarDays.innerHTML = '';
         
-     
         for (let i = 0; i < startDayOfWeek; i++) {
             const emptyDay = document.createElement('div');
             emptyDay.className = 'calendar-day inactive';
             calendarDays.appendChild(emptyDay);
         }
         
-     
         const orders = getOrders();
         
-  
         for (let i = 1; i <= daysInMonth; i++) {
             const day = document.createElement('div');
             day.className = 'calendar-day';
             
             const currentDateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             
-        
             const today = new Date();
             const isToday = i === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
             
@@ -149,7 +150,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 day.classList.add('today');
             }
             
-           
             const dayEvents = orders.filter(order => order.deadline === currentDateString);
             
             day.innerHTML = `
@@ -168,7 +168,6 @@ document.addEventListener('DOMContentLoaded', function() {
             calendarDays.appendChild(day);
         }
         
-     
         const totalCells = startDayOfWeek + daysInMonth;
         const remainingCells = 7 - (totalCells % 7);
         
@@ -181,9 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    
     function getOrders() {
-       
         return [
             {
                 id: 'TKT-2023-42',
@@ -216,7 +213,6 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
     }
 
-   
     document.getElementById('prevMonth').addEventListener('click', function() {
         navigateCalendar(-1);
     });

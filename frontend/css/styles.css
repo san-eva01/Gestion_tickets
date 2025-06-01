@@ -530,8 +530,12 @@ body {
 /* Chart Container */
 .chart-container {
     padding: 1rem 1.5rem;
-    height: 240px;
+    height: 280px;
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
 }
 
 /* Activity Feed */
@@ -1640,4 +1644,57 @@ body {
 .tooltip:hover .tooltip-text {
     visibility: visible;
     opacity: 1;
+}
+
+.chart-container canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 auto;
+}
+
+/* Estilos específicos para la tarjeta del gráfico de distribución */
+.dashboard-card.half-card {
+    display: flex;
+    flex-direction: column;
+    height: 350px; /* Altura fija para mantener consistencia */
+}
+
+.dashboard-card.half-card .card-header {
+    flex-shrink: 0;
+}
+
+.dashboard-card.half-card .chart-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0; /* Permite que el contenedor se encoja */
+}
+
+/* Ajustes para pantallas más pequeñas */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+        padding: 0.5rem;
+    }
+    
+    .dashboard-card.half-card {
+        height: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    .chart-container {
+        height: 220px;
+        padding: 0.25rem;
+    }
+    
+    .dashboard-card.half-card {
+        height: 270px;
+    }
+}
+
+/* Opcional: Si quieres ajustar el spacing entre el gráfico y la leyenda */
+.chart-container canvas + div {
+    margin-top: 10px;
 }
