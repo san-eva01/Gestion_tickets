@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entregables - Gestión de Tickets</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="creative-theme">
+    <div class="page-wrapper">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-layer-group"></i> TaskFlow
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="creative-view.html"><i class="fas fa-home"></i> Mis Tickets</a></li>
+                <li class="active"><a href="creative-deliverables.html"><i class="fas fa-cloud-upload-alt"></i> Entregables</a></li>
+                <li><a href="creative-calendar.html"><i class="fas fa-calendar-alt"></i> Calendario</a></li>
+                <li><a href="creative-profile.html"><i class="fas fa-user"></i> Mi Perfil</a></li>
+                <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+            </ul>
+        </aside>
+
+
+        <main class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">Mis Entregables</h1>
+                <div class="user-info">
+                    <span class="user-name">Carlos Ruiz</span>
+                    <span class="role-badge">Creativo</span>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div id="alertContainer"></div>
+                
+                <div class="filter-controls">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="search-input" placeholder="Buscar entregable...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">Todos los estados</option>
+                            <option value="pending">Pendiente de Revisión</option>
+                            <option value="approved">Aprobado</option>
+                            <option value="rejected">Rechazado</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-wrapper mt-3">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ticket</th>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Fecha Entrega</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <div class="modal fade" id="viewDeliverableModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalle de Entregable #<span id="viewDeliverableId"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="order-header">
+                        <h3 id="viewDeliverableTitle"></h3>
+                        <div class="order-meta">
+                            <span class="status-badge" id="viewDeliverableStatus"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="order-details">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="detail-group">
+                                    <label>Ticket:</label>
+                                    <p id="viewDeliverableOrder"></p>
+                                </div>
+                                <div class="detail-group">
+                                    <label>Cliente:</label>
+                                    <p id="viewDeliverableClient"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-group">
+                                    <label>Fecha de Entrega:</label>
+                                    <p id="viewDeliverableSubmitted"></p>
+                                </div>
+                                <div class="detail-group" id="viewReviewedDateGroup">
+                                    <label>Fecha de Revisión:</label>
+                                    <p id="viewDeliverableReviewed"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-group">
+                            <label>Archivos Entregados:</label>
+                            <div class="attachments-list" id="viewDeliverableFiles"></div>
+                        </div>
+                        
+                        <div class="detail-group" id="viewFeedbackSection" style="display: none;">
+                            <label>Feedback del Coordinador:</label>
+                            <div class="description-box" id="viewFeedback"></div>
+                        </div>
+                        
+
+                        <div class="order-comments">
+                            <h4>Comentarios</h4>
+                            <div class="comments-container" id="viewDeliverableComments"></div>
+                            <div class="new-comment">
+                                <textarea id="newDeliverableComment" placeholder="Agregar un comentario..."></textarea>
+                                <button type="button" id="addDeliverableComment" class="btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="alertContainer" class="alert-container"></div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/creative-deliverables.js"></script>
+</body>
+</html>
