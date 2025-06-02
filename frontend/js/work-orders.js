@@ -10,6 +10,30 @@ document.addEventListener("DOMContentLoaded", function () {
   // Usar la librería global de Supabase
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+
+// Agrega esto al inicio de tu archivo JS, después de crear el cliente Supabase
+const STORAGE_BUCKET = 'ticket-attachments';
+
+// Función para configurar el bucket (ejecutar una sola vez)
+async function setupStorageBucket() {
+  try {
+    const { data, error } = await supabase.storage.createBucket(STORAGE_BUCKET, {
+      public: false,
+      allowedMimeTypes: ['image/*', 'application/pdf'],
+      fileSizeLimit: 5 // 5MB
+    });
+    
+    if (error && error.message !== 'Bucket already exists') throw error;
+    console.log('Bucket configurado correctamente');
+  } catch (error) {
+    console.error('Error configurando el bucket:', error);
+  }
+}
+
+// Ejecutar esta función una vez para crear el bucket
+ setupStorageBucket();
+
+
   // Elementos del DOM
   const ordersGrid = document.getElementById("ordersGrid");
   const calendarDays = document.getElementById("calendarDays");
@@ -462,60 +486,70 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function renderTableView(tickets) {
-    if (!orderTableBody) return;
+  if (!orderTableBody) return;
 
-    orderTableBody.innerHTML = "";
+  orderTableBody.innerHTML = "";
 
-    if (tickets.length === 0) {
-      orderTableBody.innerHTML = `
-        <tr>
-          <td colspan="8" class="text-center py-4">No se encontraron tickets que coincidan con su búsqueda</td>
-        </tr>
-      `;
-      return;
-    }
-
-    tickets.forEach((ticket) => {
-      const assignedUser = users.find(
-        (u) => u.id_usuario === ticket.id_usuario_asignado
-      );
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${ticket.id_ticket}</td>
-        <td>${ticket.titulo}</td>
-        <td><span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span></td>
-        <td>
-          <div class="user-info">
-            ${
-              assignedUser
-                ? `
-                <div class="user-avatar">${getUserInitials(assignedUser.nombre)}</div>
-                <span>${assignedUser.nombre}</span>
-              `
-                : '<span class="text-muted">No asignado</span>'
-            }
-          </div>
-        </td>
-        <td><span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span></td>
-        <td>${formatDate(ticket.fecha_creacion)}</td>
-        <td>${formatDate(ticket.fecha_limite)}</td>
-        <td>
-          <div class="action-buttons">
-            <button class="btn-icon view" data-id="${ticket.id_ticket}">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button class="btn-icon edit" onclick="editTicket(${ticket.id_ticket})">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn-icon delete" onclick="deleteTicket(${ticket.id_ticket})">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </td>
-      `;
-      orderTableBody.appendChild(row);
-    });
+  if (tickets.length === 0) {
+    orderTableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-4">No se encontraron tickets que coincidan con su búsqueda</td>
+      </tr>
+    `;
+    return;
   }
+
+  tickets.forEach((ticket) => {
+    const assignedUser = users.find(
+      (u) => u.id_usuario === ticket.id_usuario_asignado
+    );
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${ticket.id_ticket}</td>
+      <td>${ticket.titulo}</td>
+      <td><span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span></td>
+      <td>
+        <div class="user-info">
+          ${
+            assignedUser
+              ? `
+              <div class="user-avatar">${getUserInitials(assignedUser.nombre)}</div>
+              <span>${assignedUser.nombre}</span>
+            `
+              : '<span class="text-muted">No asignado</span>'
+          }
+        </div>
+      </td>
+      <td><span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span></td>
+      <td>${formatDate(ticket.fecha_creacion)}</td>
+      <td>${formatDate(ticket.fecha_limite)}</td>
+      <td>
+        <div class="action-buttons">
+          <button class="btn-icon view" data-id="${ticket.id_ticket}">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="btn-icon edit" onclick="editTicket(${ticket.id_ticket})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn-icon delete" onclick="deleteTicket(${ticket.id_ticket})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </td>
+    `;
+    
+    // Agregar evento click a la fila
+    row.addEventListener('click', (e) => {
+      // Evitar que se active si se hizo click en los botones de acción
+      if (e.target.closest('.action-buttons')) {
+        return;
+      }
+      viewOrderDetails(ticket.id_ticket);
+    });
+    
+    orderTableBody.appendChild(row);
+  });
+}
 
   function renderGridView(tickets) {
     if (!ordersGrid) return;
@@ -753,108 +787,230 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function handleOrderSubmit(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!currentUser) {
-      showAlert("No se pudo identificar al usuario actual", "danger");
-      return;
-    }
+  if (!currentUser) {
+    showAlert("No se pudo identificar al usuario actual", "danger");
+    return;
+  }
 
-    const ticketId = document.getElementById("orderId").value;
-    const assignedToId = document.getElementById("assignedTo").value;
+  const ticketId = document.getElementById("orderId").value;
+  const assignedToId = document.getElementById("assignedTo").value;
+  const fileInput = document.getElementById("fileAttachments");
+  const files = fileInput.files;
 
-    const ticketData = {
-      titulo: document.getElementById("orderTitle").value,
-      categoria: document.getElementById("orderType").value,
-      id_usuario_asignado: assignedToId || null,
-      estado: document.getElementById("orderStatus").value,
-      fecha_limite: document.getElementById("orderDeadline").value,
-      id_cliente_entregable: parseInt(document.getElementById("orderClient").value) || null,
-      descripcion: document.getElementById("orderDescription").value,
-      id_creador: currentUser.id_usuario,
-    };
-
+  // Subir archivos primero si hay alguno
+  let attachments = [];
+  if (files.length > 0) {
     try {
-      if (ticketId) {
-        const { data, error } = await supabase
-          .from("ticket")
-          .update(ticketData)
-          .eq("id_ticket", ticketId)
-          .select();
-
-        if (error) throw error;
-
-        showAlert("Ticket actualizado con éxito", "success");
-      } else {
-        const { data, error } = await supabase
-          .from("ticket")
-          .insert([
-            {
-              ...ticketData,
-              fecha_creacion: new Date().toISOString(),
-            },
-          ])
-          .select();
-
-        if (error) throw error;
-
-        showAlert("Ticket creado con éxito", "success");
+      const uploadPromises = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `${ticketId || 'new'}/${fileName}`;
+        
+        uploadPromises.push(
+          supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(filePath, file)
+        );
       }
-
-      orderModal.hide();
-      await fetchTickets();
-      if (
-        document.querySelector(".tab-btn.active").getAttribute("data-view") === "calendar"
-      ) {
-        renderCalendar();
-      }
+      
+      const results = await Promise.all(uploadPromises);
+      attachments = results.map(result => {
+        if (result.error) throw result.error;
+        const { data } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(result.data.path);
+        return data.publicUrl;
+      });
     } catch (error) {
-      console.error("Error al guardar ticket:", error);
-      showAlert(`Error al guardar ticket: ${error.message}`, "danger");
+      console.error("Error subiendo archivos:", error);
+      showAlert(`Error subiendo archivos: ${error.message}`, "danger");
+      return;
     }
   }
 
-  async function viewOrderDetails(ticketId) {
-    try {
-      const { data: ticket, error } = await supabase
+  const ticketData = {
+    titulo: document.getElementById("orderTitle").value,
+    categoria: document.getElementById("orderType").value,
+    id_usuario_asignado: assignedToId || null,
+    estado: document.getElementById("orderStatus").value,
+    fecha_limite: document.getElementById("orderDeadline").value,
+    id_cliente_entregable: parseInt(document.getElementById("orderClient").value) || null,
+    descripcion: document.getElementById("orderDescription").value,
+    id_creador: currentUser.id_usuario,
+    adjuntos: attachments
+  };
+
+  try {
+    if (ticketId) {
+      // Para edición, combinar con archivos existentes
+      const { data: existingTicket, error: fetchError } = await supabase
         .from("ticket")
-        .select("*")
+        .select("adjuntos")
         .eq("id_ticket", ticketId)
         .single();
+      
+      if (fetchError) throw fetchError;
+      
+      if (existingTicket.adjuntos && existingTicket.adjuntos.length > 0) {
+        ticketData.adjuntos = [...existingTicket.adjuntos, ...attachments];
+      }
+
+      const { data, error } = await supabase
+        .from("ticket")
+        .update(ticketData)
+        .eq("id_ticket", ticketId)
+        .select();
 
       if (error) throw error;
 
-      if (!ticket) {
-        showAlert("Ticket no encontrado", "warning");
-        return;
-      }
+      showAlert("Ticket actualizado con éxito", "success");
+    } else {
+      const { data, error } = await supabase
+        .from("ticket")
+        .insert([
+          {
+            ...ticketData,
+            fecha_creacion: new Date().toISOString(),
+          },
+        ])
+        .select();
 
-      const assignedUser = users.find(
-        (u) => u.id_usuario === ticket.id_usuario_asignado
-      );
-      const creatorUser = users.find((u) => u.id_usuario === ticket.id_creador);
+      if (error) throw error;
 
-      document.getElementById("viewOrderId").textContent = ticket.id_ticket;
-      document.getElementById("viewOrderTitle").textContent = ticket.titulo;
-      document.getElementById("viewOrderType").textContent = getTypeName(ticket.categoria);
-      document.getElementById("viewOrderType").className = `type-badge ${ticket.categoria}`;
-      document.getElementById("viewOrderStatus").textContent = getStatusName(ticket.estado);
-      document.getElementById("viewOrderStatus").className = `status-badge ${ticket.estado}`;
-      document.getElementById("viewOrderPriority").textContent = getPriorityName(ticket.priority || "medium");
-      document.getElementById("viewOrderPriority").className = `priority-badge ${ticket.priority || "medium"}`;
-      document.getElementById("viewOrderClient").textContent = getClientName(ticket.id_cliente_entregable);
-      document.getElementById("viewAssignedTo").textContent = assignedUser ? assignedUser.nombre : "No asignado";
-      document.getElementById("viewCreatedBy").textContent = creatorUser ? creatorUser.nombre : "Sistema";
-      document.getElementById("viewCreatedDate").textContent = formatDate(ticket.fecha_creacion);
-      document.getElementById("viewDeadline").textContent = formatDate(ticket.fecha_limite);
-      document.getElementById("viewDescription").textContent = ticket.descripcion;
-
-      viewOrderModal.show();
-    } catch (error) {
-      console.error("Error al obtener detalles del ticket:", error);
-      showAlert(`Error al cargar detalles del ticket: ${error.message}`, "danger");
+      showAlert("Ticket creado con éxito", "success");
     }
+
+    orderModal.hide();
+    await fetchTickets();
+    if (
+      document.querySelector(".tab-btn.active").getAttribute("data-view") === "calendar"
+    ) {
+      renderCalendar();
+    }
+  } catch (error) {
+    console.error("Error al guardar ticket:", error);
+    showAlert(`Error al guardar ticket: ${error.message}`, "danger");
   }
+}
+
+  async function viewOrderDetails(ticketId) {
+  try {
+    const { data: ticket, error } = await supabase
+      .from("ticket")
+      .select("*")
+      .eq("id_ticket", ticketId)
+      .single();
+
+    if (error) throw error;
+
+    if (!ticket) {
+      showAlert("Ticket no encontrado", "warning");
+      return;
+    }
+
+    const assignedUser = users.find(
+      (u) => u.id_usuario === ticket.id_usuario_asignado
+    );
+    const creatorUser = users.find((u) => u.id_usuario === ticket.id_creador);
+
+    document.getElementById("viewOrderId").textContent = ticket.id_ticket;
+    document.getElementById("viewOrderTitle").textContent = ticket.titulo;
+    document.getElementById("viewOrderType").textContent = getTypeName(ticket.categoria);
+    document.getElementById("viewOrderType").className = `type-badge ${ticket.categoria}`;
+    document.getElementById("viewOrderStatus").textContent = getStatusName(ticket.estado);
+    document.getElementById("viewOrderStatus").className = `status-badge ${ticket.estado}`;
+    document.getElementById("viewOrderPriority").textContent = getPriorityName(ticket.priority || "medium");
+    document.getElementById("viewOrderPriority").className = `priority-badge ${ticket.priority || "medium"}`;
+    document.getElementById("viewOrderClient").textContent = getClientName(ticket.id_cliente_entregable);
+    document.getElementById("viewAssignedTo").textContent = assignedUser ? assignedUser.nombre : "No asignado";
+    document.getElementById("viewCreatedBy").textContent = creatorUser ? creatorUser.nombre : "Sistema";
+    document.getElementById("viewCreatedDate").textContent = formatDate(ticket.fecha_creacion);
+    document.getElementById("viewDeadline").textContent = formatDate(ticket.fecha_limite);
+    document.getElementById("viewDescription").textContent = ticket.descripcion;
+
+    // Mostrar adjuntos
+    const attachmentsList = document.getElementById("viewAttachmentsList");
+    attachmentsList.innerHTML = "";
+    
+    if (ticket.adjuntos && ticket.adjuntos.length > 0) {
+      ticket.adjuntos.forEach((url, index) => {
+        const fileExt = url.split('.').pop().toLowerCase();
+        const attachmentItem = document.createElement("div");
+        attachmentItem.className = "attachment-item";
+        
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExt)) {
+          // Es una imagen
+          attachmentItem.innerHTML = `
+            <div class="attachment-preview">
+              <img src="${url}" alt="Adjunto ${index + 1}" class="img-thumbnail">
+              <div class="attachment-actions">
+                <a href="${url}" target="_blank" class="btn btn-sm btn-primary">
+                  <i class="fas fa-expand"></i> Ver
+                </a>
+                <a href="${url}" download class="btn btn-sm btn-secondary">
+                  <i class="fas fa-download"></i> Descargar
+                </a>
+              </div>
+            </div>
+            <div class="attachment-info">
+              <span class="attachment-name">Imagen ${index + 1}.${fileExt}</span>
+            </div>
+          `;
+        } else if (fileExt === 'pdf') {
+          // Es un PDF
+          attachmentItem.innerHTML = `
+            <div class="attachment-preview">
+              <i class="fas fa-file-pdf pdf-icon"></i>
+              <div class="attachment-actions">
+                <a href="${url}" target="_blank" class="btn btn-sm btn-primary">
+                  <i class="fas fa-expand"></i> Ver
+                </a>
+                <a href="${url}" download class="btn btn-sm btn-secondary">
+                  <i class="fas fa-download"></i> Descargar
+                </a>
+              </div>
+            </div>
+            <div class="attachment-info">
+              <span class="attachment-name">Documento ${index + 1}.pdf</span>
+            </div>
+          `;
+        } else {
+          // Otro tipo de archivo
+          attachmentItem.innerHTML = `
+            <div class="attachment-preview">
+              <i class="fas fa-file-alt"></i>
+              <div class="attachment-actions">
+                <a href="${url}" target="_blank" class="btn btn-sm btn-primary">
+                  <i class="fas fa-expand"></i> Ver
+                </a>
+                <a href="${url}" download class="btn btn-sm btn-secondary">
+                  <i class="fas fa-download"></i> Descargar
+                </a>
+              </div>
+            </div>
+            <div class="attachment-info">
+              <span class="attachment-name">Archivo ${index + 1}.${fileExt}</span>
+            </div>
+          `;
+        }
+        
+        attachmentsList.appendChild(attachmentItem);
+      });
+    } else {
+      attachmentsList.innerHTML = '<p class="text-muted">No hay archivos adjuntos</p>';
+    }
+
+    viewOrderModal.show();
+  } catch (error) {
+    console.error("Error al obtener detalles del ticket:", error);
+    showAlert(`Error al cargar detalles del ticket: ${error.message}`, "danger");
+  }
+}
 
   async function confirmDeleteOrder() {
     const ticketId = document.getElementById("deleteOrderId").textContent;

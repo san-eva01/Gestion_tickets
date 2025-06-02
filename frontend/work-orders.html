@@ -235,10 +235,11 @@
                 <div class="form-group">
                   <label for="fileAttachments">Adjuntos</label>
                   <div class="file-upload-container">
-                    <input type="file" id="fileAttachments" class="form-control" multiple />
+                    <input type="file" id="fileAttachments" class="form-control" multiple
+                      accept=".pdf,.jpg,.jpeg,.png" />
                     <div class="file-upload-button">
                       <i class="fas fa-cloud-upload-alt"></i>
-                      <span>Seleccionar archivos</span>
+                      <span>Seleccionar archivos (PDF, JPG, JPEG, PNG)</span>
                     </div>
                   </div>
                   <div id="fileList" class="file-list"></div>
@@ -357,7 +358,8 @@
   </div>
 
   <!-- Modal de confirmación para eliminar ticket (CORREGIDO) -->
-  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
@@ -394,17 +396,17 @@
   <!-- Script adicional para inicializar correctamente los modales -->
   <script>
     // Inicialización segura de los modales
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       // Asegurar que Bootstrap está cargado
       if (typeof bootstrap !== 'undefined') {
         // Inicializar el modal de confirmación de eliminación
         const deleteConfirmModal = new bootstrap.Modal(
           document.getElementById('deleteConfirmModal'), {
-            backdrop: 'static',
-            keyboard: false
-          }
+          backdrop: 'static',
+          keyboard: false
+        }
         );
-        
+
         // Hacer disponible globalmente si es necesario
         window.deleteConfirmModal = deleteConfirmModal;
       } else {
