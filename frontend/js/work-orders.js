@@ -41,6 +41,205 @@ document.addEventListener("DOMContentLoaded", function () {
   let clients = [];
   let currentUser = null;
 
+  function checkAndApplyURLFilters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get("status");
+
+    if (statusParam) {
+      // Mostrar indicador de filtro activo
+      showActiveFilterBadge(statusParam);
+
+      // Aplicar el filtro según el parámetro
+      applyFilterFromDashboard(statusParam);
+    }
+  }
+
+  // Función para aplicar filtro basado en el parámetro del dashboard
+  function applyFilterFromDashboard(statusParam) {
+    const statusFilter = document.getElementById("statusFilter");
+    if (!statusFilter) return;
+
+    let filterValue = "";
+
+    switch (statusParam) {
+      case "in-progress":
+        filterValue = "in-progress";
+        break;
+      case "review":
+        filterValue = "review";
+        break;
+      case "completed":
+        // Para completados, necesitamos filtrar por múltiples estados
+        // Usaremos una función especial
+        applyCompletedFilter();
+        return;
+      default:
+        filterValue = "";
+    }
+
+    // Aplicar el filtro
+    statusFilter.value = filterValue;
+    filterOrders();
+  }
+
+  // Función especial para filtrar tickets completados (delivered + approved)
+  function applyCompletedFilter() {
+    const filteredTickets = tickets.filter(
+      (ticket) => ticket.estado === "delivered" || ticket.estado === "approved"
+    );
+
+    renderOrders(filteredTickets);
+
+    // Actualizar el dropdown para mostrar que hay un filtro personalizado
+    const statusFilter = document.getElementById("statusFilter");
+    if (statusFilter) {
+      // Agregar opción temporal para "completados"
+      const completedOption = document.createElement("option");
+      completedOption.value = "completed";
+      completedOption.textContent = "Completados (Dashboard)";
+      completedOption.selected = true;
+      statusFilter.appendChild(completedOption);
+    }
+  }
+
+  // Función para mostrar badge de filtro activo
+  function showActiveFilterBadge(statusParam) {
+    // Crear badge si no existe
+    let badge = document.getElementById("activeFilterBadge");
+    if (!badge) {
+      badge = document.createElement("div");
+      badge.id = "activeFilterBadge";
+      badge.className = "active-filter-badge";
+
+      const filterControls = document.querySelector(".filter-controls");
+      if (filterControls) {
+        filterControls.insertBefore(badge, filterControls.firstChild);
+      }
+    }
+
+    // Configurar contenido del badge
+    let badgeText = "";
+    let badgeIcon = "fas fa-filter";
+
+    switch (statusParam) {
+      case "in-progress":
+        badgeText = "Filtro: En Proceso";
+        break;
+      case "review":
+        badgeText = "Filtro: En Revisión";
+        break;
+      case "completed":
+        badgeText = "Filtro: Completados";
+        break;
+      default:
+        badgeText = "Filtro aplicado desde Dashboard";
+    }
+
+    badge.innerHTML = `
+        <div class="badge-content">
+            <i class="${badgeIcon}"></i>
+            <span>${badgeText}</span>
+            <button class="clear-filter-btn" onclick="clearDashboardFilter()" title="Limpiar filtro">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+
+    badge.style.display = "flex";
+  }
+
+  // Función para limpiar el filtro del dashboard
+  function clearDashboardFilter() {
+    // Limpiar parámetros de URL
+    const url = new URL(window.location);
+    url.searchParams.delete("status");
+    window.history.replaceState({}, "", url);
+
+    // Ocultar badge
+    const badge = document.getElementById("activeFilterBadge");
+    if (badge) {
+      badge.style.display = "none";
+    }
+
+    // Limpiar filtros
+    const statusFilter = document.getElementById("statusFilter");
+    if (statusFilter) {
+      // Remover opción de completados si existe
+      const completedOption = statusFilter.querySelector(
+        'option[value="completed"]'
+      );
+      if (completedOption) {
+        completedOption.remove();
+      }
+
+      statusFilter.value = "";
+    }
+
+    // Renderizar todos los tickets
+    renderOrders();
+
+    showAlert("Filtro eliminado", "info");
+  }
+
+  // Función modificada para filtrar órdenes (reemplazar la existente)
+  function filterOrders() {
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
+    const statusValue = statusFilter ? statusFilter.value : "";
+    const typeValue = typeFilter ? typeFilter.value : "";
+    const dateFrom =
+      dateFromFilter && dateFromFilter.value
+        ? new Date(dateFromFilter.value)
+        : null;
+    const dateTo =
+      dateToFilter && dateToFilter.value ? new Date(dateToFilter.value) : null;
+
+    const filtered = tickets.filter((ticket) => {
+      const assignedUser = users.find(
+        (u) => u.id_usuario === ticket.id_usuario_asignado
+      );
+      const assignedName = assignedUser
+        ? assignedUser.nombre.toLowerCase()
+        : "";
+
+      const clientName = getClientName(
+        ticket.id_cliente_entregable
+      ).toLowerCase();
+
+      const matchesSearch =
+        !searchTerm ||
+        ticket.titulo.toLowerCase().includes(searchTerm) ||
+        ticket.id_ticket.toString().toLowerCase().includes(searchTerm) ||
+        assignedName.includes(searchTerm) ||
+        clientName.includes(searchTerm);
+
+      // Manejar filtro de estado especial para "completed"
+      let matchesStatus = true;
+      if (statusValue === "completed") {
+        matchesStatus =
+          ticket.estado === "delivered" || ticket.estado === "approved";
+      } else {
+        matchesStatus = !statusValue || ticket.estado === statusValue;
+      }
+
+      const matchesType = !typeValue || ticket.categoria === typeValue;
+
+      let matchesDate = true;
+      const ticketDate = new Date(ticket.fecha_limite);
+
+      if (dateFrom && dateTo) {
+        matchesDate = ticketDate >= dateFrom && ticketDate <= dateTo;
+      } else if (dateFrom) {
+        matchesDate = ticketDate >= dateFrom;
+      } else if (dateTo) {
+        matchesDate = ticketDate <= dateTo;
+      }
+
+      return matchesSearch && matchesStatus && matchesType && matchesDate;
+    });
+
+    renderOrders(filtered);
+  }
+
   // Inicialización
   init();
 
@@ -149,10 +348,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!isAuthenticated) return;
 
     await getCurrentUser();
+
+    // CAMBIO: Cargar usuarios y clientes ANTES que los tickets
     await fetchUsers();
     await fetchClients();
+
+    // Ahora cargar los tickets después de tener usuarios y clientes
     await fetchTickets();
-    
+    checkAndApplyURLFilters();
+
     populateAssigneeDropdown();
     populateClientDropdown();
     setupFileUpload();
@@ -207,7 +411,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (error) throw error;
 
       tickets = data || [];
-      
+
+      // CAMBIO: Solo renderizar después de confirmar que tenemos usuarios cargados
       if (users.length > 0) {
         renderOrders();
       }
@@ -684,8 +889,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
     const statusValue = statusFilter ? statusFilter.value : "";
     const typeValue = typeFilter ? typeFilter.value : "";
-    const dateFrom = dateFromFilter && dateFromFilter.value ? new Date(dateFromFilter.value) : null;
-    const dateTo = dateToFilter && dateToFilter.value ? new Date(dateToFilter.value) : null;
+    const dateFrom =
+      dateFromFilter && dateFromFilter.value
+        ? new Date(dateFromFilter.value)
+        : null;
+    const dateTo =
+      dateToFilter && dateToFilter.value ? new Date(dateToFilter.value) : null;
 
     const filtered = tickets.filter((ticket) => {
       const assignedUser = users.find(
@@ -758,7 +967,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function getClientName(clientId) {
     if (!clientId) return "Sin cliente";
     const client = clients.find((c) => c.id_cliente === clientId);
-    return client ? `${client.nombre} (${client.tipo || "Sin tipo"})` : `Cliente ID: ${clientId}`;
+    return client
+      ? `${client.nombre} (${client.tipo || "Sin tipo"})`
+      : `Cliente ID: ${clientId}`;
   }
 
   function formatDate(dateStr) {
