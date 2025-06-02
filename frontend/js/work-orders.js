@@ -5,8 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Configuración de Supabase
   const supabaseUrl = "https://onbgqjndemplsgxdaltr.supabase.co";
-  const supabaseKey =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw";
 
   // Usar la librería global de Supabase
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -30,13 +29,16 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("viewOrderModal")
   );
   const deleteConfirmModal = new bootstrap.Modal(
-    document.getElementById("deleteConfirmModal")
+    document.getElementById("deleteConfirmModal"), {
+      backdrop: 'static',
+      keyboard: false
+    }
   );
 
   // Variables de estado
   let tickets = [];
   let users = [];
-  let clients = []; // Nueva variable para clientes
+  let clients = [];
   let currentUser = null;
 
   // Inicialización
@@ -56,6 +58,11 @@ document.addEventListener("DOMContentLoaded", function () {
       .getElementById("confirmDelete")
       .addEventListener("click", confirmDeleteOrder);
   }
+
+  // Event listener adicional para el botón Cancelar
+  document.querySelector('#deleteConfirmModal .btn-secondary')?.addEventListener('click', function() {
+    deleteConfirmModal.hide();
+  });
 
   if (document.getElementById("editOrderBtn")) {
     document
@@ -108,18 +115,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // Funciones globales para los botones de acción
+  window.editTicket = function(ticketId) {
+    const ticket = tickets.find((t) => t.id_ticket === ticketId);
+
+    if (!ticket) return;
+
+    if (currentUser.rol !== "Admin" && ticket.id_creador !== currentUser.id_usuario) {
+      showAlert("No tienes permiso para editar este ticket", "warning");
+      return;
+    }
+
+    showOrderModal(ticketId);
+  };
+
+  window.deleteTicket = function(ticketId) {
+    const ticket = tickets.find((t) => t.id_ticket === ticketId);
+
+    if (!ticket) return;
+
+    if (currentUser.rol !== "Admin" && ticket.id_creador !== currentUser.id_usuario) {
+      showAlert("No tienes permiso para eliminar este ticket", "warning");
+      return;
+    }
+
+    document.getElementById("deleteOrderId").textContent = ticketId;
+    deleteConfirmModal.show();
+  };
+
   // Funciones principales
   async function init() {
     const isAuthenticated = await checkAuthStatus();
     if (!isAuthenticated) return;
 
     await getCurrentUser();
-    
-    // CAMBIO: Cargar usuarios y clientes ANTES que los tickets
     await fetchUsers();
     await fetchClients();
-    
-    // Ahora cargar los tickets después de tener usuarios y clientes
     await fetchTickets();
     
     populateAssigneeDropdown();
@@ -139,7 +170,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function getCurrentUser() {
     try {
-      // Obtener usuario del localStorage (donde lo guardamos en login.js)
       const userStr = localStorage.getItem("taskflow_user");
       if (!userStr) {
         console.error("No se encontró usuario en localStorage");
@@ -148,7 +178,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const userData = JSON.parse(userStr);
 
-      // Verificar que tenemos los datos mínimos necesarios
       if (!userData.id || !userData.name) {
         console.error("Datos de usuario incompletos en localStorage");
         return null;
@@ -179,7 +208,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       tickets = data || [];
       
-      // CAMBIO: Solo renderizar después de confirmar que tenemos usuarios cargados
       if (users.length > 0) {
         renderOrders();
       }
@@ -224,7 +252,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function renderOrders(filteredTickets = null) {
     const ticketsToRender = filteredTickets || tickets;
-
     renderTableView(ticketsToRender);
     renderGridView(ticketsToRender);
   }
@@ -236,10 +263,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (tickets.length === 0) {
       orderTableBody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center py-4">No se encontraron tickets que coincidan con su búsqueda</td>
-                </tr>
-            `;
+        <tr>
+          <td colspan="8" class="text-center py-4">No se encontraron tickets que coincidan con su búsqueda</td>
+        </tr>
+      `;
       return;
     }
 
@@ -249,50 +276,38 @@ document.addEventListener("DOMContentLoaded", function () {
       );
       const row = document.createElement("tr");
       row.innerHTML = `
-                <td>${ticket.id_ticket}</td>
-                <td>${ticket.titulo}</td>
-                <td><span class="type-badge ${ticket.categoria}">${getTypeName(
-        ticket.categoria
-      )}</span></td>
-                <td>
-                    <div class="user-info">
-                        ${
-                          assignedUser
-                            ? `
-                            <div class="user-avatar">${getUserInitials(
-                              assignedUser.nombre
-                            )}</div>
-                            <span>${assignedUser.nombre}</span>
-                        `
-                            : '<span class="text-muted">No asignado</span>'
-                        }
-                    </div>
-                </td>
-                <td><span class="status-badge ${ticket.estado}">${getStatusName(
-        ticket.estado
-      )}</span></td>
-                <td>${formatDate(ticket.fecha_creacion)}</td>
-                <td>${formatDate(ticket.fecha_limite)}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-icon view" onclick="viewOrderDetails('${
-                          ticket.id_ticket
-                        }')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-icon edit" onclick="editOrder('${
-                          ticket.id_ticket
-                        }')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete" onclick="deleteOrder('${
-                          ticket.id_ticket
-                        }')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
+        <td>${ticket.id_ticket}</td>
+        <td>${ticket.titulo}</td>
+        <td><span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span></td>
+        <td>
+          <div class="user-info">
+            ${
+              assignedUser
+                ? `
+                <div class="user-avatar">${getUserInitials(assignedUser.nombre)}</div>
+                <span>${assignedUser.nombre}</span>
+              `
+                : '<span class="text-muted">No asignado</span>'
+            }
+          </div>
+        </td>
+        <td><span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span></td>
+        <td>${formatDate(ticket.fecha_creacion)}</td>
+        <td>${formatDate(ticket.fecha_limite)}</td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn-icon view" data-id="${ticket.id_ticket}">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn-icon edit" onclick="editTicket(${ticket.id_ticket})">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon delete" onclick="deleteTicket(${ticket.id_ticket})">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      `;
       orderTableBody.appendChild(row);
     });
   }
@@ -304,8 +319,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (tickets.length === 0) {
       ordersGrid.innerHTML = `
-                <div class="text-center py-4 w-100">No se encontraron tickets que coincidan con su búsqueda</div>
-            `;
+        <div class="text-center py-4 w-100">No se encontraron tickets que coincidan con su búsqueda</div>
+      `;
       return;
     }
 
@@ -316,70 +331,50 @@ document.addEventListener("DOMContentLoaded", function () {
       const card = document.createElement("div");
       card.className = "order-card";
       card.innerHTML = `
-                <div class="order-card-header">
-                    <h3 class="order-card-title">${ticket.titulo}</h3>
-                    <div class="order-card-meta">
-                        <span class="status-badge ${
-                          ticket.estado
-                        }">${getStatusName(ticket.estado)}</span>
-                        <span class="type-badge ${
-                          ticket.categoria
-                        }">${getTypeName(ticket.categoria)}</span>
-                    </div>
-                </div>
-                <div class="order-card-body">
-                    <div class="order-info-item">
-                        <span class="order-info-label">Cliente:</span>
-                        <span class="order-info-value">${getClientName(
-                          ticket.id_cliente_entregable
-                        )}</span>
-                    </div>
-                    <div class="order-info-item">
-                        <span class="order-info-label">Fecha Límite:</span>
-                        <span class="order-info-value">${formatDate(
-                          ticket.fecha_limite
-                        )}</span>
-                    </div>
-                    <div class="order-info-item">
-                        <span class="order-info-label">Asignado a:</span>
-                        <span class="order-info-value">
-                            ${
-                              assignedUser ? assignedUser.nombre : "No asignado"
-                            }
-                        </span>
-                    </div>
-                    <div class="order-info-item">
-                        <span class="order-info-label">Prioridad:</span>
-                        <span class="order-info-value">
-                            <span class="priority-badge ${
-                              ticket.priority || "medium"
-                            }">${getPriorityName(
-        ticket.priority || "medium"
-      )}</span>
-                        </span>
-                    </div>
-                </div>
-                <div class="order-card-footer">
-                    <span class="order-id">${ticket.id_ticket}</span>
-                    <div class="action-buttons">
-                        <button class="btn-icon view" onclick="viewOrderDetails('${
-                          ticket.id_ticket
-                        }')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-icon edit" onclick="editOrder('${
-                          ticket.id_ticket
-                        }')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete" onclick="deleteOrder('${
-                          ticket.id_ticket
-                        }')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
+        <div class="order-card-header">
+          <h3 class="order-card-title">${ticket.titulo}</h3>
+          <div class="order-card-meta">
+            <span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span>
+            <span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span>
+          </div>
+        </div>
+        <div class="order-card-body">
+          <div class="order-info-item">
+            <span class="order-info-label">Cliente:</span>
+            <span class="order-info-value">${getClientName(ticket.id_cliente_entregable)}</span>
+          </div>
+          <div class="order-info-item">
+            <span class="order-info-label">Fecha Límite:</span>
+            <span class="order-info-value">${formatDate(ticket.fecha_limite)}</span>
+          </div>
+          <div class="order-info-item">
+            <span class="order-info-label">Asignado a:</span>
+            <span class="order-info-value">
+              ${assignedUser ? assignedUser.nombre : "No asignado"}
+            </span>
+          </div>
+          <div class="order-info-item">
+            <span class="order-info-label">Prioridad:</span>
+            <span class="order-info-value">
+              <span class="priority-badge ${ticket.priority || "medium"}">${getPriorityName(ticket.priority || "medium")}</span>
+            </span>
+          </div>
+        </div>
+        <div class="order-card-footer">
+          <span class="order-id">${ticket.id_ticket}</span>
+          <div class="action-buttons">
+            <button class="btn-icon view" data-id="${ticket.id_ticket}">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn-icon edit" onclick="editTicket(${ticket.id_ticket})">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon delete" onclick="deleteTicket(${ticket.id_ticket})">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
       ordersGrid.appendChild(card);
     });
   }
@@ -414,10 +409,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const day = document.createElement("div");
       day.className = "calendar-day";
 
-      const currentDateString = `${year}-${String(month + 1).padStart(
-        2,
-        "0"
-      )}-${String(i).padStart(2, "0")}`;
+      const currentDateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
 
       const today = new Date();
       const isToday =
@@ -434,23 +426,21 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       day.innerHTML = `
-                <div class="calendar-day-header">
-                    <span class="day-number${
-                      isToday ? " today" : ""
-                    }">${i}</span>
-                </div>
-                <div class="calendar-day-events">
-                    ${dayEvents
-                      .map(
-                        (event) => `
-                        <div class="calendar-event ${event.estado}" onclick="viewOrderDetails('${event.id_ticket}')">
-                            ${event.titulo}
-                        </div>
-                    `
-                      )
-                      .join("")}
-                </div>
-            `;
+        <div class="calendar-day-header">
+          <span class="day-number${isToday ? " today" : ""}">${i}</span>
+        </div>
+        <div class="calendar-day-events">
+          ${dayEvents
+            .map(
+              (event) => `
+              <div class="calendar-event ${event.estado}" data-id="${event.id_ticket}">
+                ${event.titulo}
+              </div>
+            `
+            )
+            .join("")}
+        </div>
+      `;
 
       calendarDays.appendChild(day);
     }
@@ -487,17 +477,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const orderClientSelect = document.getElementById("orderClient");
     if (!orderClientSelect) return;
 
-    // Limpiar opciones existentes excepto la primera
-    orderClientSelect.innerHTML =
-      '<option value="">Seleccionar cliente...</option>';
+    orderClientSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
 
-    // Agregar cada cliente como opción
     clients.forEach((client) => {
       const option = document.createElement("option");
       option.value = client.id_cliente;
-      option.textContent = `${client.nombre} ${
-        client.tipo ? `(${client.tipo})` : ""
-      }`;
+      option.textContent = `${client.nombre} ${client.tipo ? `(${client.tipo})` : ""}`;
       orderClientSelect.appendChild(option);
     });
   }
@@ -516,9 +501,9 @@ document.addEventListener("DOMContentLoaded", function () {
           const fileItem = document.createElement("div");
           fileItem.className = "file-item";
           fileItem.innerHTML = `
-                        <span>${file.name}</span>
-                        <i class="fas fa-times remove-file"></i>
-                    `;
+            <span>${file.name}</span>
+            <i class="fas fa-times remove-file"></i>
+          `;
           fileList.appendChild(fileItem);
         }
 
@@ -545,12 +530,10 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("orderId").value = ticket.id_ticket;
         document.getElementById("orderTitle").value = ticket.titulo;
         document.getElementById("orderType").value = ticket.categoria;
-        document.getElementById("assignedTo").value =
-          ticket.id_usuario_asignado || "";
+        document.getElementById("assignedTo").value = ticket.id_usuario_asignado || "";
         document.getElementById("orderStatus").value = ticket.estado;
         document.getElementById("priority").value = ticket.priority || "medium";
-        document.getElementById("orderClient").value =
-          ticket.id_cliente_entregable || "";
+        document.getElementById("orderClient").value = ticket.id_cliente_entregable || "";
         document.getElementById("orderDeadline").value = ticket.fecha_limite;
         document.getElementById("orderDescription").value = ticket.descripcion;
 
@@ -581,15 +564,13 @@ document.addEventListener("DOMContentLoaded", function () {
       id_usuario_asignado: assignedToId || null,
       estado: document.getElementById("orderStatus").value,
       fecha_limite: document.getElementById("orderDeadline").value,
-      id_cliente_entregable:
-        parseInt(document.getElementById("orderClient").value) || null,
+      id_cliente_entregable: parseInt(document.getElementById("orderClient").value) || null,
       descripcion: document.getElementById("orderDescription").value,
-      id_creador: currentUser.id_usuario, // Usamos el ID del usuario actual
+      id_creador: currentUser.id_usuario,
     };
 
     try {
       if (ticketId) {
-        // Actualizar ticket existente
         const { data, error } = await supabase
           .from("ticket")
           .update(ticketData)
@@ -600,7 +581,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         showAlert("Ticket actualizado con éxito", "success");
       } else {
-        // Crear nuevo ticket
         const { data, error } = await supabase
           .from("ticket")
           .insert([
@@ -619,8 +599,7 @@ document.addEventListener("DOMContentLoaded", function () {
       orderModal.hide();
       await fetchTickets();
       if (
-        document.querySelector(".tab-btn.active").getAttribute("data-view") ===
-        "calendar"
+        document.querySelector(".tab-btn.active").getAttribute("data-view") === "calendar"
       ) {
         renderCalendar();
       }
@@ -652,48 +631,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
       document.getElementById("viewOrderId").textContent = ticket.id_ticket;
       document.getElementById("viewOrderTitle").textContent = ticket.titulo;
-      document.getElementById("viewOrderType").textContent = getTypeName(
-        ticket.categoria
-      );
-      document.getElementById(
-        "viewOrderType"
-      ).className = `type-badge ${ticket.categoria}`;
-      document.getElementById("viewOrderStatus").textContent = getStatusName(
-        ticket.estado
-      );
-      document.getElementById(
-        "viewOrderStatus"
-      ).className = `status-badge ${ticket.estado}`;
-      document.getElementById("viewOrderPriority").textContent =
-        getPriorityName(ticket.priority || "medium");
-      document.getElementById(
-        "viewOrderPriority"
-      ).className = `priority-badge ${ticket.priority || "medium"}`;
-      document.getElementById("viewOrderClient").textContent = getClientName(
-        ticket.id_cliente_entregable
-      );
-      document.getElementById("viewAssignedTo").textContent = assignedUser
-        ? assignedUser.nombre
-        : "No asignado";
-      document.getElementById("viewCreatedBy").textContent = creatorUser
-        ? creatorUser.nombre
-        : "Sistema";
-      document.getElementById("viewCreatedDate").textContent = formatDate(
-        ticket.fecha_creacion
-      );
-      document.getElementById("viewDeadline").textContent = formatDate(
-        ticket.fecha_limite
-      );
-      document.getElementById("viewDescription").textContent =
-        ticket.descripcion;
+      document.getElementById("viewOrderType").textContent = getTypeName(ticket.categoria);
+      document.getElementById("viewOrderType").className = `type-badge ${ticket.categoria}`;
+      document.getElementById("viewOrderStatus").textContent = getStatusName(ticket.estado);
+      document.getElementById("viewOrderStatus").className = `status-badge ${ticket.estado}`;
+      document.getElementById("viewOrderPriority").textContent = getPriorityName(ticket.priority || "medium");
+      document.getElementById("viewOrderPriority").className = `priority-badge ${ticket.priority || "medium"}`;
+      document.getElementById("viewOrderClient").textContent = getClientName(ticket.id_cliente_entregable);
+      document.getElementById("viewAssignedTo").textContent = assignedUser ? assignedUser.nombre : "No asignado";
+      document.getElementById("viewCreatedBy").textContent = creatorUser ? creatorUser.nombre : "Sistema";
+      document.getElementById("viewCreatedDate").textContent = formatDate(ticket.fecha_creacion);
+      document.getElementById("viewDeadline").textContent = formatDate(ticket.fecha_limite);
+      document.getElementById("viewDescription").textContent = ticket.descripcion;
 
       viewOrderModal.show();
     } catch (error) {
       console.error("Error al obtener detalles del ticket:", error);
-      showAlert(
-        `Error al cargar detalles del ticket: ${error.message}`,
-        "danger"
-      );
+      showAlert(`Error al cargar detalles del ticket: ${error.message}`, "danger");
     }
   }
 
@@ -722,7 +676,7 @@ document.addEventListener("DOMContentLoaded", function () {
     viewOrderModal.hide();
 
     setTimeout(() => {
-      editOrder(ticketId);
+      editTicket(ticketId);
     }, 400);
   }
 
@@ -730,21 +684,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
     const statusValue = statusFilter ? statusFilter.value : "";
     const typeValue = typeFilter ? typeFilter.value : "";
-    const dateFrom = dateFromFilter && dateFromFilter.value
-      ? new Date(dateFromFilter.value)
-      : null;
-    const dateTo = dateToFilter && dateToFilter.value
-      ? new Date(dateToFilter.value)
-      : null;
+    const dateFrom = dateFromFilter && dateFromFilter.value ? new Date(dateFromFilter.value) : null;
+    const dateTo = dateToFilter && dateToFilter.value ? new Date(dateToFilter.value) : null;
 
     const filtered = tickets.filter((ticket) => {
       const assignedUser = users.find(
         (u) => u.id_usuario === ticket.id_usuario_asignado
       );
-      const assignedName = assignedUser
-        ? assignedUser.nombre.toLowerCase()
-        : "";
-      
+      const assignedName = assignedUser ? assignedUser.nombre.toLowerCase() : "";
       const clientName = getClientName(ticket.id_cliente_entregable).toLowerCase();
 
       const matchesSearch =
@@ -755,7 +702,6 @@ document.addEventListener("DOMContentLoaded", function () {
         clientName.includes(searchTerm);
 
       const matchesStatus = !statusValue || ticket.estado === statusValue;
-
       const matchesType = !typeValue || ticket.categoria === typeValue;
 
       let matchesDate = true;
@@ -843,11 +789,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     alertContainer.innerHTML = `
-            <div class="alert alert-${type} alert-dismissible fade show">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
+      <div class="alert alert-${type} alert-dismissible fade show">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
     setTimeout(() => (alertContainer.innerHTML = ""), 5000);
   }
 
@@ -859,44 +805,4 @@ document.addEventListener("DOMContentLoaded", function () {
   function addViewComment() {
     console.log("Función addViewComment no implementada");
   }
-
-  // Funciones globales para los botones
-  window.viewOrderDetails = function (ticketId) {
-    viewOrderDetails(ticketId);
-  };
-
-  window.editOrder = function (ticketId) {
-    const ticket = tickets.find((t) => t.id_ticket === ticketId);
-
-    if (!ticket) return;
-
-    // Solo permitir edición si es el creador o admin
-    if (
-      currentUser.rol !== "Admin" &&
-      ticket.id_creador !== currentUser.id_usuario
-    ) {
-      showAlert("No tienes permiso para editar este ticket", "warning");
-      return;
-    }
-
-    showOrderModal(ticketId);
-  };
-
-  window.deleteOrder = function (ticketId) {
-    const ticket = tickets.find((t) => t.id_ticket === ticketId);
-
-    if (!ticket) return;
-
-    // Solo permitir eliminación si es el creador o admin
-    if (
-      currentUser.rol !== "Admin" &&
-      ticket.id_creador !== currentUser.id_usuario
-    ) {
-      showAlert("No tienes permiso para eliminar este ticket", "warning");
-      return;
-    }
-
-    document.getElementById("deleteOrderId").textContent = ticketId;
-    deleteConfirmModal.show();
-  };
 });

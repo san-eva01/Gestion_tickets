@@ -940,6 +940,11 @@ body {
     font-weight: 600;
     color: var(--primary-color);
 }
+.modal-title-confirmacion{
+      font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+}
 
 .modal-body {
     padding: 1.5rem;

@@ -1,41 +1,40 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Verifica que estamos en la página de usuarios
     const usersTable = document.getElementById('usersTableBody');
-    if (!usersTable) return;  // Si no existe, termina la ejecución
-    
-    // Declarar todas las variables necesarias
+    if (!usersTable) return;
+
+    // Elementos del DOM
     const usersTableBody = document.getElementById('usersTableBody');
     const searchInput = document.querySelector('.search-input');
     const userForm = document.getElementById('userForm');
+    const confirmUserDeleteBtn = document.getElementById('confirmUserDelete');
+    
+    // Variables de estado
     let users = [];
-    let userModal;
-    
-    // Inicializar modal de Bootstrap
-    try {
-        userModal = new bootstrap.Modal(document.getElementById('userModal'));
-    } catch (error) {
-        console.error('Error al inicializar modal:', error);
-    }
-    
-    // Configura Supabase (SOLO se ejecutará en usuarios.html)
+    let currentUserToDelete = null;
+    let userModal, deleteUserConfirmModal;
+
+    // Configuración de Supabase
     const supabaseUrl = 'https://onbgqjndemplsgxdaltr.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw';
-    
-    // Verificar que Supabase esté disponible globalmente
-    if (typeof supabase === 'undefined') {
-        console.error('Supabase no está cargado. Verifica que el script esté incluido.');
-        showAlert('Error: No se puede conectar a la base de datos', 'danger');
-        return;
-    }
-    
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-    
-    console.log('Supabase inicializado:', supabaseClient);
-    
-    // Event listeners - verificar que los elementos existan
-    const btnNewUser = document.getElementById('btnNewUser');
-    if (btnNewUser) {
-        btnNewUser.addEventListener('click', () => showUserModal());
+
+    // Inicialización de modales
+    try {
+        userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        deleteUserConfirmModal = new bootstrap.Modal(
+            document.getElementById('deleteUserConfirmModal'), {
+                backdrop: 'static',
+                keyboard: false
+            }
+        );
+    } catch (error) {
+        console.error('Error al inicializar modales:', error);
+    }
+
+    // Event listeners
+    if (document.getElementById('btnNewUser')) {
+        document.getElementById('btnNewUser').addEventListener('click', () => showUserModal());
     }
     
     if (userForm) {
@@ -46,12 +45,17 @@ document.addEventListener('DOMContentLoaded', function () {
         searchInput.addEventListener('input', filterUsers);
     }
 
-    // Cargar usuarios al iniciar
+    if (confirmUserDeleteBtn) {
+        confirmUserDeleteBtn.addEventListener('click', confirmDeleteUser);
+    }
+
+    // Iniciar la aplicación
     fetchUsers();
 
     // Función para obtener usuarios desde Supabase
     async function fetchUsers() {
         try {
+            showLoading(true);
             const { data, error } = await supabaseClient
                 .from('usuario')
                 .select('*')
@@ -64,17 +68,17 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             console.error('Error al obtener usuarios:', error);
             showAlert(`Error al cargar usuarios: ${error.message}`, 'danger');
+        } finally {
+            showLoading(false);
         }
     }
 
+    // Renderizar la tabla de usuarios
     function renderUsers(filteredUsers = null) {
         const usersToRender = filteredUsers || users;
         
-        if (!usersTableBody) {
-            console.error('Elemento usersTableBody no encontrado');
-            return;
-        }
-        
+        if (!usersTableBody) return;
+
         usersTableBody.innerHTML = '';
 
         if (usersToRender.length === 0) {
@@ -105,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button class="btn-icon edit" onclick="editUser(${user.id_usuario})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon delete" onclick="deleteUser(${user.id_usuario})">
+                        <button class="btn-icon delete" onclick="showDeleteConfirmation(${user.id_usuario}, '${escapeHtml(user.nombre)}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -113,6 +117,160 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             usersTableBody.appendChild(row);
         });
+    }
+
+    // Mostrar modal de confirmación para eliminar
+    window.showDeleteConfirmation = function(userId, userName) {
+        currentUserToDelete = userId;
+        document.getElementById('deleteUserId').textContent = userId;
+        document.getElementById('deleteUserName').textContent = userName;
+        deleteUserConfirmModal.show();
+    };
+
+    // Confirmar eliminación de usuario
+    async function confirmDeleteUser() {
+        if (!currentUserToDelete) return;
+
+        try {
+            showLoading(true);
+            const { error } = await supabaseClient
+                .from('usuario')
+                .delete()
+                .eq('id_usuario', currentUserToDelete);
+
+            if (error) throw error;
+
+            showAlert('Usuario eliminado con éxito', 'success');
+            deleteUserConfirmModal.hide();
+            await fetchUsers();
+        } catch (error) {
+            console.error('Error al eliminar usuario:', error);
+            showAlert(`Error al eliminar usuario: ${error.message}`, 'danger');
+        } finally {
+            currentUserToDelete = null;
+            showLoading(false);
+        }
+    }
+
+    // Mostrar modal para nuevo/editar usuario
+    async function showUserModal(userId = null) {
+        if (!userForm || !userModal) return;
+        
+        userForm.reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('password').value = '';
+
+        if (userId) {
+            try {
+                showLoading(true);
+                const { data: user, error } = await supabaseClient
+                    .from('usuario')
+                    .select('*')
+                    .eq('id_usuario', userId)
+                    .single();
+
+                if (error) throw error;
+
+                document.getElementById('userId').value = user.id_usuario;
+                document.getElementById('nombre').value = user.nombre;
+                document.getElementById('email').value = user.email;
+                document.getElementById('rol').value = user.rol;
+                document.getElementById('modalTitle').textContent = 'Editar Usuario';
+                document.getElementById('password').placeholder = 'Dejar en blanco para no cambiar';
+            } catch (error) {
+                console.error('Error al cargar usuario:', error);
+                showAlert(`Error al cargar usuario: ${error.message}`, 'danger');
+                return;
+            } finally {
+                showLoading(false);
+            }
+        } else {
+            document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('password').placeholder = 'Contraseña requerida';
+        }
+
+        userModal.show();
+    }
+
+    // Manejar envío del formulario
+    async function handleUserSubmit(e) {
+        e.preventDefault();
+
+        const userId = document.getElementById('userId').value;
+        const userData = {
+            nombre: document.getElementById('nombre').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            rol: document.getElementById('rol').value
+        };
+        const password = document.getElementById('password').value;
+
+        // Validación
+        if (!userData.nombre || !userData.email || !userData.rol) {
+            showAlert('Complete todos los campos requeridos', 'warning');
+            return;
+        }
+
+        try {
+            showLoading(true);
+            if (userId) {
+                // Actualizar usuario existente
+                const { error } = await supabaseClient
+                    .from('usuario')
+                    .update(userData)
+                    .eq('id_usuario', userId);
+
+                if (error) throw error;
+
+                // Actualizar contraseña si se proporcionó
+                if (password) {
+                    const { error: pwError } = await supabaseClient.auth.updateUser({
+                        password: password
+                    });
+                    if (pwError) console.warn('Error al actualizar contraseña:', pwError);
+                }
+
+                showAlert('Usuario actualizado con éxito', 'success');
+            } else {
+                // Crear nuevo usuario
+                if (!password) {
+                    showAlert('La contraseña es requerida para nuevos usuarios', 'warning');
+                    return;
+                }
+
+                const { error: dbError } = await supabaseClient
+                    .from('usuario')
+                    .insert({
+                        ...userData,
+                        contrasena: password
+                    });
+
+                if (dbError) throw dbError;
+
+                showAlert('Usuario creado con éxito', 'success');
+            }
+
+            userModal.hide();
+            await fetchUsers();
+        } catch (error) {
+            console.error('Error al guardar usuario:', error);
+            showAlert(error.message || 'Error al procesar la solicitud', 'danger');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // Filtrar usuarios
+    function filterUsers() {
+        if (!searchInput) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const filtered = users.filter(user =>
+            user.nombre.toLowerCase().includes(searchTerm) ||
+            user.email.toLowerCase().includes(searchTerm) ||
+            user.rol.toLowerCase().includes(searchTerm) ||
+            user.id_usuario.toString().includes(searchTerm)
+        );
+        renderUsers(filtered);
     }
 
     // Funciones auxiliares
@@ -141,156 +299,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Mostrar modal para nuevo/editar usuario
-    async function showUserModal(userId = null) {
-        if (!userForm || !userModal) {
-            console.error('Form o modal no disponible');
-            return;
-        }
-        
-        userForm.reset();
-        const userIdInput = document.getElementById('userId');
-        const passwordInput = document.getElementById('password');
-        
-        if (userIdInput) userIdInput.value = '';
-        if (passwordInput) passwordInput.value = '';
-
-        if (userId) {
-            try {
-                const { data: user, error } = await supabaseClient
-                    .from('usuario')
-                    .select('*')
-                    .eq('id_usuario', userId)
-                    .single();
-
-                if (error) throw error;
-
-                const elements = {
-                    userId: document.getElementById('userId'),
-                    nombre: document.getElementById('nombre'),
-                    email: document.getElementById('email'),
-                    rol: document.getElementById('rol'),
-                    modalTitle: document.getElementById('modalTitle'),
-                    password: document.getElementById('password')
-                };
-
-                if (elements.userId) elements.userId.value = user.id_usuario;
-                if (elements.nombre) elements.nombre.value = user.nombre;
-                if (elements.email) elements.email.value = user.email;
-                if (elements.rol) elements.rol.value = user.rol;
-                if (elements.modalTitle) elements.modalTitle.textContent = 'Editar Usuario';
-                if (elements.password) elements.password.placeholder = 'Dejar en blanco para no cambiar';
-            } catch (error) {
-                console.error('Error al cargar usuario:', error);
-                showAlert(`Error al cargar usuario: ${error.message}`, 'danger');
-                return;
-            }
-        } else {
-            const modalTitle = document.getElementById('modalTitle');
-            const passwordInput = document.getElementById('password');
-            
-            if (modalTitle) modalTitle.textContent = 'Nuevo Usuario';
-            if (passwordInput) passwordInput.placeholder = 'Contraseña requerida';
-        }
-
-        userModal.show();
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
-    // Manejar envío del formulario
-    async function handleUserSubmit(e) {
-        e.preventDefault();
-
-        const userIdInput = document.getElementById('userId');
-        const nombreInput = document.getElementById('nombre');
-        const emailInput = document.getElementById('email');
-        const rolInput = document.getElementById('rol');
-        const passwordInput = document.getElementById('password');
-
-        const userId = userIdInput ? userIdInput.value : '';
-        const userData = {
-            nombre: nombreInput ? nombreInput.value.trim() : '',
-            email: emailInput ? emailInput.value.trim() : '',
-            rol: rolInput ? rolInput.value : ''
-        };
-
-        const password = passwordInput ? passwordInput.value : '';
-
-        // Validación
-        if (!userData.nombre || !userData.email || !userData.rol) {
-            showAlert('Complete todos los campos requeridos', 'warning');
-            return;
-        }
-
-        try {
-            if (userId) {
-                // Actualizar usuario existente
-                const { error } = await supabaseClient
-                    .from('usuario')
-                    .update(userData)
-                    .eq('id_usuario', userId);
-
-                if (error) throw error;
-
-                // Actualizar contraseña si se proporcionó
-                if (password) {
-                    const { error: pwError } = await supabaseClient.auth.updateUser({
-                        password: password
-                    });
-                    if (pwError) console.warn('Error al actualizar contraseña:', pwError);
-                }
-
-                showAlert('Usuario actualizado con éxito', 'success');
-            } else {
-                // Crear nuevo usuario
-                if (!password) {
-                    showAlert('La contraseña es requerida para nuevos usuarios', 'warning');
-                    return;
-                }
-
-                // Insertar en tabla public.usuario
-                const { error: dbError } = await supabaseClient
-                    .from('usuario')
-                    .insert({
-                        nombre: userData.nombre,
-                        email: userData.email,
-                        rol: userData.rol,
-                        contrasena: password // En producción deberías hashearla
-                    });
-
-                if (dbError) throw dbError;
-
-                showAlert('Usuario creado con éxito', 'success');
-            }
-
-            userModal.hide();
-            await fetchUsers();
-        } catch (error) {
-            console.error('Error al guardar usuario:', error);
-            showAlert(error.message || 'Error al procesar la solicitud', 'danger');
-        }
-    }
-
-    // Filtrar usuarios
-    function filterUsers() {
-        if (!searchInput) return;
-        
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const filtered = users.filter(user =>
-            user.nombre.toLowerCase().includes(searchTerm) ||
-            user.email.toLowerCase().includes(searchTerm) ||
-            user.rol.toLowerCase().includes(searchTerm) ||
-            user.id_usuario.toString().includes(searchTerm)
-        );
-        renderUsers(filtered);
-    }
-
-    // Mostrar alertas
     function showAlert(message, type = 'info') {
         const alertContainer = document.getElementById('alertContainer');
-        if (!alertContainer) {
-            console.error('Alert container no encontrado');
-            return;
-        }
+        if (!alertContainer) return;
         
         alertContainer.innerHTML = `
             <div class="alert alert-${type} alert-dismissible fade show">
@@ -301,28 +321,17 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => alertContainer.innerHTML = '', 5000);
     }
 
-    // Funciones globales para los botones
+    function showLoading(show) {
+        // Implementar lógica de loading si es necesaria
+    }
+
+    // Funciones globales
     window.editUser = function (userId) {
         showUserModal(userId);
     };
 
-    window.deleteUser = async function (userId) {
-        if (!confirm('¿Eliminar este usuario permanentemente?')) return;
 
-        try {
-            // Eliminar de la tabla
-            const { error } = await supabaseClient
-                .from('usuario')
-                .delete()
-                .eq('id_usuario', userId);
-
-            if (error) throw error;
-
-            showAlert('Usuario eliminado', 'success');
-            await fetchUsers();
-        } catch (error) {
-            console.error('Error al eliminar:', error);
-            showAlert('Error al eliminar usuario', 'danger');
-        }
-    };
+    document.querySelector('#deleteUserConfirmModal .btn-secondary').addEventListener('click', function() {
+    deleteUserConfirmModal.hide();
+});
 });
