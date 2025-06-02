@@ -1,184 +1,229 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Calendario - Gestión de Tickets</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
-</head>
-<body class="creative-theme">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="css/styles.css" rel="stylesheet" />
+  </head>
+  <body class="creative-theme">
     <div class="page-wrapper">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <i class="fas fa-layer-group"></i> TaskFlow
+        </div>
+        <ul class="sidebar-menu">
+          <li>
+            <a href="creative-view.html"
+              ><i class="fas fa-home"></i> Mis Tickets</a
+            >
+          </li>
+          <li>
+            <a href="creative-deliverables.html"
+              ><i class="fas fa-cloud-upload-alt"></i> Entregables</a
+            >
+          </li>
+          <li class="active">
+            <a href="creative-calendar.html"
+              ><i class="fas fa-calendar-alt"></i> Calendario</a
+            >
+          </li>
+          <li>
+            <a href="creative-profile.html"
+              ><i class="fas fa-user"></i> Mi Perfil</a
+            >
+          </li>
+          <li>
+            <a href="#" id="logout"
+              ><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a
+            >
+          </li>
+        </ul>
+      </aside>
 
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-layer-group"></i> TaskFlow
+      <main class="main-content">
+        <div class="content-header">
+          <h1 class="page-title">Calendario de Tickets</h1>
+          <div class="user-info">
+            <span class="user-name">Carlos Ruiz</span>
+            <span class="role-badge">Creativo</span>
+          </div>
+        </div>
+
+        <div class="card-container">
+          <div id="alertContainer"></div>
+
+          <div class="calendar-controls">
+            <button class="btn-icon" id="prevMonth">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <h3 class="calendar-title" id="calendarTitle">Junio 2023</h3>
+            <button class="btn-icon" id="nextMonth">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="calendar-grid">
+            <div class="calendar-header">
+              <div>Lun</div>
+              <div>Mar</div>
+              <div>Mié</div>
+              <div>Jue</div>
+              <div>Vie</div>
+              <div>Sáb</div>
+              <div>Dom</div>
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="creative-view.html"><i class="fas fa-home"></i> Mis Tickets</a></li>
-                <li><a href="creative-deliverables.html"><i class="fas fa-cloud-upload-alt"></i> Entregables</a></li>
-                <li class="active"><a href="creative-calendar.html"><i class="fas fa-calendar-alt"></i> Calendario</a></li>
-                <li><a href="creative-profile.html"><i class="fas fa-user"></i> Mi Perfil</a></li>
-                <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-            </ul>
-        </aside>
+            <div class="calendar-days" id="calendarDays"></div>
+          </div>
 
-
-        <main class="main-content">
-            <div class="content-header">
-                <h1 class="page-title">Calendario de Tickets</h1>
-                <div class="user-info">
-                    <span class="user-name">Carlos Ruiz</span>
-                    <span class="role-badge">Creativo</span>
-                </div>
+          <div class="mt-4">
+            <h4>Leyenda</h4>
+            <div class="d-flex flex-wrap gap-3 mt-2">
+              <div class="d-flex align-items-center">
+                <span class="status-badge assigned me-2">Asignado</span>
+                <span class="text-muted"
+                  >Tickets asignados pendientes de iniciar</span
+                >
+              </div>
+              <div class="d-flex align-items-center">
+                <span class="status-badge in-progress me-2">En Proceso</span>
+                <span class="text-muted"
+                  >Tickets en los que estás trabajando</span
+                >
+              </div>
+              <div class="d-flex align-items-center">
+                <span class="status-badge review me-2">En Revisión</span>
+                <span class="text-muted">Tickets enviados para aprobación</span>
+              </div>
+              <div class="d-flex align-items-center">
+                <span class="status-badge completed me-2">Completado</span>
+                <span class="text-muted">Tickets aprobados y entregados</span>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div class="card-container">
-                <div id="alertContainer"></div>
-                
-                <div class="calendar-controls">
-                    <button class="btn-icon" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
-                    <h3 class="calendar-title" id="calendarTitle">Junio 2023</h3>
-                    <button class="btn-icon" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
-                </div>
-                
-                <div class="calendar-grid">
-                    <div class="calendar-header">
-                        <div>Lun</div>
-                        <div>Mar</div>
-                        <div>Mié</div>
-                        <div>Jue</div>
-                        <div>Vie</div>
-                        <div>Sáb</div>
-                        <div>Dom</div>
+        <div class="card-container mt-4">
+          <div class="card-header">
+            <h2>Próximas Entregas</h2>
+          </div>
+          <div class="table-wrapper">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Título</th>
+                  <th>Cliente</th>
+                  <th>Estado</th>
+                  <th>Fecha Entrega</th>
+                  <th>Días Restantes</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="upcomingTasksTable">
+                <tr>
+                  <td>#TKT-2023-37</td>
+                  <td>Logo para Startup</td>
+                  <td>TechStart</td>
+                  <td>
+                    <span class="status-badge in-progress">En Proceso</span>
+                  </td>
+                  <td>21/06/2023</td>
+                  <td class="text-danger">1 día</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button
+                        class="btn-icon view"
+                        onclick="viewTask('TKT-2023-37')"
+                      >
+                        <i class="fas fa-eye"></i>
+                      </button>
                     </div>
-                    <div class="calendar-days" id="calendarDays">
-
+                  </td>
+                </tr>
+                <tr>
+                  <td>#TKT-2023-42</td>
+                  <td>Campaña Verano 2023</td>
+                  <td>Playa Resort</td>
+                  <td><span class="status-badge assigned">Asignado</span></td>
+                  <td>22/06/2023</td>
+                  <td class="text-danger">2 días</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button
+                        class="btn-icon view"
+                        onclick="viewTask('TKT-2023-42')"
+                      >
+                        <i class="fas fa-eye"></i>
+                      </button>
                     </div>
-                </div>
-                
-                <div class="mt-4">
-                    <h4>Leyenda</h4>
-                    <div class="d-flex flex-wrap gap-3 mt-2">
-                        <div class="d-flex align-items-center">
-                            <span class="status-badge assigned me-2">Asignado</span>
-                            <span class="text-muted">Tickets asignados pendientes de iniciar</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="status-badge in-progress me-2">En Proceso</span>
-                            <span class="text-muted">Tickets en los que estás trabajando</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="status-badge review me-2">En Revisión</span>
-                            <span class="text-muted">Tickets enviados para aprobación</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="status-badge completed me-2">Completado</span>
-                            <span class="text-muted">Tickets aprobados y entregados</span>
-                        </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>#TKT-2023-36</td>
+                  <td>Plantillas para Redes</td>
+                  <td>Nutrición Esencial</td>
+                  <td>
+                    <span class="status-badge in-progress">En Proceso</span>
+                  </td>
+                  <td>27/06/2023</td>
+                  <td>7 días</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button
+                        class="btn-icon view"
+                        onclick="viewTask('TKT-2023-36')"
+                      >
+                        <i class="fas fa-eye"></i>
+                      </button>
                     </div>
-                </div>
-            </div>
-            
-            <div class="card-container mt-4">
-                <div class="card-header">
-                    <h2>Próximas Entregas</h2>
-                </div>
-                <div class="table-wrapper">
-                    <table class="custom-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Título</th>
-                                <th>Cliente</th>
-                                <th>Estado</th>
-                                <th>Fecha Entrega</th>
-                                <th>Días Restantes</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="upcomingTasksTable">
-
-                            <tr>
-                                <td>#TKT-2023-37</td>
-                                <td>Logo para Startup</td>
-                                <td>TechStart</td>
-                                <td><span class="status-badge in-progress">En Proceso</span></td>
-                                <td>21/06/2023</td>
-                                <td class="text-danger">1 día</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-icon view" onclick="viewTask('TKT-2023-37')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#TKT-2023-42</td>
-                                <td>Campaña Verano 2023</td>
-                                <td>Playa Resort</td>
-                                <td><span class="status-badge assigned">Asignado</span></td>
-                                <td>22/06/2023</td>
-                                <td class="text-danger">2 días</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-icon view" onclick="viewTask('TKT-2023-42')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#TKT-2023-36</td>
-                                <td>Plantillas para Redes</td>
-                                <td>Nutrición Esencial</td>
-                                <td><span class="status-badge in-progress">En Proceso</span></td>
-                                <td>27/06/2023</td>
-                                <td>7 días</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-icon view" onclick="viewTask('TKT-2023-36')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
     </div>
-
 
     <div class="modal fade" id="viewTaskModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Detalle de Ticket #<span id="viewTaskId"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
- 
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <div class="task-actions" id="taskActions">
-
-                    </div>
-                </div>
-            </div>
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Detalle de Ticket #<span id="viewTaskId"></span>
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn-secondary" data-bs-dismiss="modal">
+              Cerrar
+            </button>
+            <div class="task-actions" id="taskActions"></div>
+          </div>
         </div>
+      </div>
     </div>
-
 
     <div id="alertContainer" class="alert-container"></div>
 
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="js/main.js"></script>
     <script src="js/creative-calendar.js"></script>
-</body>
+  </body>
 </html>

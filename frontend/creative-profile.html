@@ -1,175 +1,276 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mi Perfil - Gestión de Órdenes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
-</head>
-<body class="creative-theme">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="css/styles.css" rel="stylesheet" />
+  </head>
+  <body class="creative-theme">
     <div class="page-wrapper">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <i class="fas fa-layer-group"></i> TaskFlow
+        </div>
+        <ul class="sidebar-menu">
+          <li>
+            <a href="creative-view.html"
+              ><i class="fas fa-home"></i> Mis Tickets</a
+            >
+          </li>
+          <li>
+            <a href="creative-deliverables.html"
+              ><i class="fas fa-cloud-upload-alt"></i> Entregables</a
+            >
+          </li>
+          <li>
+            <a href="creative-calendar.html"
+              ><i class="fas fa-calendar-alt"></i> Calendario</a
+            >
+          </li>
+          <li class="active">
+            <a href="creative-profile.html"
+              ><i class="fas fa-user"></i> Mi Perfil</a
+            >
+          </li>
+          <li>
+            <a href="#" id="logout"
+              ><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a
+            >
+          </li>
+        </ul>
+      </aside>
 
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-layer-group"></i> TaskFlow
-            </div>
-            <ul class="sidebar-menu">
-                <li><a href="creative-view.html"><i class="fas fa-home"></i> Mis Tickets</a></li>
-                <li><a href="creative-deliverables.html"><i class="fas fa-cloud-upload-alt"></i> Entregables</a></li>
-                <li><a href="creative-calendar.html"><i class="fas fa-calendar-alt"></i> Calendario</a></li>
-                <li class="active"><a href="creative-profile.html"><i class="fas fa-user"></i> Mi Perfil</a></li>
-                <li><a href="#" id="logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-            </ul>
-        </aside>
+      <main class="main-content">
+        <div class="content-header">
+          <h1 class="page-title">Mi Perfil</h1>
+          <div class="user-info">
+            <span class="user-name">Carlos Ruiz</span>
+            <span class="role-badge">Creativo</span>
+          </div>
+        </div>
 
+        <div class="card-container">
+          <div id="alertContainer"></div>
 
-        <main class="main-content">
-            <div class="content-header">
-                <h1 class="page-title">Mi Perfil</h1>
-                <div class="user-info">
-                    <span class="user-name">Carlos Ruiz</span>
-                    <span class="role-badge">Creativo</span>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="card mb-4">
+                <div class="card-body text-center">
+                  <div class="user-avatar-large mb-3">CR</div>
+                  <h3 class="mb-1">Carlos Ruiz</h3>
+                  <p class="text-muted">Diseñador Gráfico</p>
+                  <div class="d-flex justify-content-center mt-3">
+                    <button class="btn-primary me-2">
+                      <i class="fas fa-camera"></i> Cambiar Foto
+                    </button>
+                  </div>
                 </div>
+              </div>
+
+              <div class="card mb-4">
+                <div class="card-header">
+                  <h4>Estadísticas</h4>
+                </div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between mb-3">
+                    <span>Tareas Completadas</span>
+                    <span class="fw-bold">24</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-3">
+                    <span>En Proceso</span>
+                    <span class="fw-bold">3</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-3">
+                    <span>Tasa de Entrega a Tiempo</span>
+                    <span class="fw-bold text-success">92%</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Calificación Promedio</span>
+                    <span class="fw-bold text-warning">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star-half-alt"></i>
+                      4.5/5
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="card-container">
-                <div id="alertContainer"></div>
-                
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="card mb-4">
-                            <div class="card-body text-center">
-                                <div class="user-avatar-large mb-3">CR</div>
-                                <h3 class="mb-1">Carlos Ruiz</h3>
-                                <p class="text-muted">Diseñador Gráfico</p>
-                                <div class="d-flex justify-content-center mt-3">
-                                    <button class="btn-primary me-2">
-                                        <i class="fas fa-camera"></i> Cambiar Foto
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h4>Estadísticas</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between mb-3">
-                                    <span>Tareas Completadas</span>
-                                    <span class="fw-bold">24</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-3">
-                                    <span>En Proceso</span>
-                                    <span class="fw-bold">3</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-3">
-                                    <span>Tasa de Entrega a Tiempo</span>
-                                    <span class="fw-bold text-success">92%</span>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span>Calificación Promedio</span>
-                                    <span class="fw-bold text-warning">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star-half-alt"></i>
-                                        4.5/5
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-8">
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h4>Información Personal</h4>
-                                <button class="btn-primary btn-sm" id="editProfileBtn">
-                                    <i class="fas fa-edit"></i> Editar
-                                </button>
-                            </div>
-                            <div class="card-body">
-                                <form id="profileForm">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label for="firstName" class="form-label">Nombre</label>
-                                            <input type="text" class="form-control" id="firstName" value="Carlos" disabled>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="lastName" class="form-label">Apellido</label>
-                                            <input type="text" class="form-control" id="lastName" value="Ruiz" disabled>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label for="email" class="form-label">Email</label>
-                                            <input type="email" class="form-control" id="email" value="carlos.ruiz@agencia.com" disabled>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="phone" class="form-label">Teléfono</label>
-                                            <input type="tel" class="form-control" id="phone" value="+52 55 1234 5678" disabled>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="position" class="form-label">Puesto</label>
-                                        <input type="text" class="form-control" id="position" value="Diseñador Gráfico" disabled>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="bio" class="form-label">Biografía</label>
-                                        <textarea class="form-control" id="bio" rows="4" disabled>Diseñador gráfico con más de 5 años de experiencia en diseño de identidad corporativa, materiales promocionales y diseño web. Especializado en crear soluciones visuales que comunican efectivamente el mensaje de la marca.</textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="skills" class="form-label">Habilidades</label>
-                                        <input type="text" class="form-control" id="skills" value="Adobe Photoshop, Illustrator, InDesign, Figma, UI/UX, Branding" disabled>
-                                    </div>
-                                    <div class="text-end" id="saveProfileBtnContainer" style="display: none;">
-                                        <button type="button" class="btn-secondary me-2" id="cancelEditBtn">Cancelar</button>
-                                        <button type="submit" class="btn-primary" id="saveProfileBtn">Guardar Cambios</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h4>Cambiar Contraseña</h4>
-                            </div>
-                            <div class="card-body">
-                                <form id="passwordForm">
-                                    <div class="mb-3">
-                                        <label for="currentPassword" class="form-label">Contraseña Actual</label>
-                                        <input type="password" class="form-control" id="currentPassword">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="newPassword" class="form-label">Nueva Contraseña</label>
-                                        <input type="password" class="form-control" id="newPassword">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="confirmPassword" class="form-label">Confirmar Contraseña</label>
-                                        <input type="password" class="form-control" id="confirmPassword">
-                                    </div>
-                                    <div class="text-end">
-                                        <button type="submit" class="btn-primary">Actualizar Contraseña</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+            <div class="col-md-8">
+              <div class="card mb-4">
+                <div
+                  class="card-header d-flex justify-content-between align-items-center"
+                >
+                  <h4>Información Personal</h4>
+                  <button class="btn-primary btn-sm" id="editProfileBtn">
+                    <i class="fas fa-edit"></i> Editar
+                  </button>
                 </div>
+                <div class="card-body">
+                  <form id="profileForm">
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label for="firstName" class="form-label">Nombre</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="firstName"
+                          value="Carlos"
+                          disabled
+                        />
+                      </div>
+                      <div class="col-md-6">
+                        <label for="lastName" class="form-label"
+                          >Apellido</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="lastName"
+                          value="Ruiz"
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input
+                          type="email"
+                          class="form-control"
+                          id="email"
+                          value="carlos.ruiz@agencia.com"
+                          disabled
+                        />
+                      </div>
+                      <div class="col-md-6">
+                        <label for="phone" class="form-label">Teléfono</label>
+                        <input
+                          type="tel"
+                          class="form-control"
+                          id="phone"
+                          value="+52 55 1234 5678"
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="position" class="form-label">Puesto</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="position"
+                        value="Diseñador Gráfico"
+                        disabled
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="bio" class="form-label">Biografía</label>
+                      <textarea class="form-control" id="bio" rows="4" disabled>
+Diseñador gráfico con más de 5 años de experiencia en diseño de identidad corporativa, materiales promocionales y diseño web. Especializado en crear soluciones visuales que comunican efectivamente el mensaje de la marca.</textarea
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <label for="skills" class="form-label">Habilidades</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="skills"
+                        value="Adobe Photoshop, Illustrator, InDesign, Figma, UI/UX, Branding"
+                        disabled
+                      />
+                    </div>
+                    <div
+                      class="text-end"
+                      id="saveProfileBtnContainer"
+                      style="display: none"
+                    >
+                      <button
+                        type="button"
+                        class="btn-secondary me-2"
+                        id="cancelEditBtn"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        class="btn-primary"
+                        id="saveProfileBtn"
+                      >
+                        Guardar Cambios
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="card mb-4">
+                <div class="card-header">
+                  <h4>Cambiar Contraseña</h4>
+                </div>
+                <div class="card-body">
+                  <form id="passwordForm">
+                    <div class="mb-3">
+                      <label for="currentPassword" class="form-label"
+                        >Contraseña Actual</label
+                      >
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="currentPassword"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="newPassword" class="form-label"
+                        >Nueva Contraseña</label
+                      >
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="newPassword"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="confirmPassword" class="form-label"
+                        >Confirmar Contraseña</label
+                      >
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="confirmPassword"
+                      />
+                    </div>
+                    <div class="text-end">
+                      <button type="submit" class="btn-primary">
+                        Actualizar Contraseña
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
-        </main>
+          </div>
+        </div>
+      </main>
     </div>
-
 
     <div id="alertContainer" class="alert-container"></div>
 
- 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="js/creative-profile.js"></script>
-</body>
+  </body>
 </html>
