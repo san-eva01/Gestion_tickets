@@ -10,11 +10,15 @@ document.addEventListener('DOMContentLoaded', function () {
     let clients = [];
     let clientModal;
     
-    // Inicializar modal de Bootstrap
+    // Inicializar modales de Bootstrap
     try {
         clientModal = new bootstrap.Modal(document.getElementById('clientModal'));
+        deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
     } catch (error) {
-        console.error('Error al inicializar modal:', error);
+        console.error('Error al inicializar modales:', error);
     }
     
     // Configura Supabase (SOLO se ejecutará en clientes.html)
@@ -45,6 +49,12 @@ document.addEventListener('DOMContentLoaded', function () {
     
     if (searchInput) {
         searchInput.addEventListener('input', filterClients);
+    }
+
+    // Confirmar eliminación de cliente
+    const confirmDeleteBtn = document.getElementById('confirmDelete');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', confirmDeleteClient);
     }
 
     // Cargar clientes al iniciar
@@ -123,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button class="btn-icon view" onclick="viewClient(${client.id_cliente})" title="Ver detalles">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn-icon delete" onclick="deleteClient(${client.id_cliente})" title="Eliminar">
+                        <button class="btn-icon delete" onclick="showDeleteModal(${client.id_cliente})" title="Eliminar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -131,6 +141,37 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             clientsTableBody.appendChild(row);
         });
+    }
+
+    // Mostrar modal de confirmación para eliminar
+    function showDeleteModal(clientId) {
+        const client = clients.find(c => c.id_cliente === clientId);
+        if (!client) return;
+
+        document.getElementById('deleteClientId').textContent = clientId;
+        document.getElementById('deleteClientName').textContent = client.nombre || 'Sin nombre';
+        deleteConfirmModal.show();
+    }
+
+    // Confirmar eliminación de cliente
+    async function confirmDeleteClient() {
+        const clientId = document.getElementById('deleteClientId').textContent;
+        
+        try {
+            const { error } = await supabaseClient
+                .from('cliente')
+                .delete()
+                .eq('id_cliente', clientId);
+
+            if (error) throw error;
+
+            deleteConfirmModal.hide();
+            showAlert('Cliente eliminado con éxito', 'success');
+            await fetchClients();
+        } catch (error) {
+            console.error('Error al eliminar cliente:', error);
+            showAlert(`Error al eliminar cliente: ${error.message}`, 'danger');
+        }
     }
 
     // Funciones auxiliares
@@ -377,26 +418,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    window.deleteClient = async function (clientId) {
-        const client = clients.find(c => c.id_cliente === clientId);
-        if (!client) return;
 
-        if (!confirm(`¿Eliminar el cliente "${client.nombre || 'Sin nombre'}" permanentemente?`)) return;
+    window.showDeleteModal = function(clientId) {
+    const client = clients.find(c => c.id_cliente === clientId);
+    if (!client) return;
 
-        try {
-            // Eliminar de la tabla
-            const { error } = await supabaseClient
-                .from('cliente')
-                .delete()
-                .eq('id_cliente', clientId);
-
-            if (error) throw error;
-
-            showAlert('Cliente eliminado con éxito', 'success');
-            await fetchClients();
-        } catch (error) {
-            console.error('Error al eliminar:', error);
-            showAlert('Error al eliminar cliente', 'danger');
-        }
-    };
+    document.getElementById('deleteClientId').textContent = clientId;
+    document.getElementById('deleteClientName').textContent = client.nombre || 'Sin nombre';
+    
+    // Asegúrate de que deleteConfirmModal está definido
+    if (window.deleteConfirmModal) {
+        window.deleteConfirmModal.show();
+    } else {
+        console.error('Modal de confirmación no encontrado');
+    }
+};
 });
