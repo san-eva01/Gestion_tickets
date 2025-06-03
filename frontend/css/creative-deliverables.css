@@ -1,0 +1,427 @@
+/* Estilos adicionales para el modal expandido de entregables */
+
+/* Modal expandido */
+.modal-xl {
+    max-width: 1200px;
+}
+
+/* Cards de información */
+.detail-group {
+    margin-bottom: 0.75rem;
+}
+
+.detail-group label {
+    font-weight: 600;
+    color: var(--gray-600);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.detail-group p {
+    margin: 0;
+    color: var(--text-color);
+}
+
+/* Timeline expandido */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--gray-300);
+    z-index: 1;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: -2rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 2;
+    font-size: 0.8rem;
+}
+
+.timeline-content {
+    padding-bottom: 0.5rem;
+}
+
+/* Archivos adjuntos mejorados */
+.attachment-item {
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-speed);
+}
+
+.attachment-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tabla de entregables clickeable */
+.custom-table tbody tr {
+    cursor: pointer;
+    transition: background-color var(--transition-speed);
+}
+
+.custom-table tbody tr:hover {
+    background-color: var(--gray-50);
+}
+
+/* Header del modal expandido */
+.order-header {
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.order-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Cards de información */
+.bg-light {
+    background-color: var(--gray-50) !important;
+}
+
+.card-title {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Responsive para el modal expandido */
+@media (max-width: 1200px) {
+    .modal-xl {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-xl {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+    
+    .order-header .row {
+        flex-direction: column;
+    }
+    
+    .order-header .col-md-4 {
+        text-align: start !important;
+        margin-top: 1rem;
+    }
+    
+    .timeline {
+        padding-left: 1.5rem;
+    }
+    
+    .timeline-icon {
+        left: -1.5rem;
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
+}
+
+/* Estilos para modal compacto de entregables */
+
+/* Header compacto */
+.compact-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.compact-header .modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Body compacto */
+.compact-body {
+    padding: 1.25rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Footer compacto */
+.compact-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+/* Sección de estados */
+.status-section {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Grid de información compacto */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--gray-50);
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.info-item i {
+    font-size: 0.9rem;
+    width: 16px;
+    text-align: center;
+}
+
+.info-item small {
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.info-item .fw-medium {
+    font-size: 0.85rem;
+    line-height: 1.2;
+}
+
+/* Divisores de sección */
+.section-divider {
+    border-left: 3px solid var(--primary-color);
+    padding-left: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+.section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.section-title i {
+    font-size: 0.8rem;
+}
+
+/* Cajas de contenido */
+.content-box {
+    background-color: var(--gray-50);
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    border: 1px solid var(--gray-200);
+}
+
+/* Archivos compactos */
+.files-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.file-item-compact {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: var(--gray-50);
+    border-radius: 6px;
+    border: 1px solid var(--gray-200);
+    gap: 0.5rem;
+    transition: all var(--transition-speed);
+}
+
+.file-item-compact:hover {
+    border-color: var(--primary-color);
+    background-color: var(--light-color);
+}
+
+.file-item-compact i {
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+.file-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.file-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.deliverable-file {
+    border-left: 3px solid var(--success-color);
+}
+
+.deliverable-file:hover {
+    border-left-color: var(--success-color);
+}
+
+/* Timeline compacto mejorado */
+.timeline-compact {
+    padding-left: 0;
+}
+
+.timeline-item-compact {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.timeline-item-compact:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.timeline-icon-compact {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.timeline-line {
+    width: 2px;
+    height: 20px;
+    background-color: var(--gray-300);
+    margin-top: 4px;
+    border-radius: 1px;
+}
+
+.timeline-content-compact {
+    flex: 1;
+    padding-top: 2px;
+}
+
+.timeline-description {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
+}
+
+.timeline-meta {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+/* Alertas pequeñas */
+.alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+/* Responsive para el modal compacto */
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .compact-body {
+        padding: 1rem;
+        max-height: 65vh;
+    }
+    
+    .timeline-item-compact {
+        gap: 0.5rem;
+    }
+    
+    .timeline-icon-compact {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+    
+    .file-name {
+        font-size: 0.8rem;
+    }
+    
+    .status-section {
+        justify-content: center;
+    }
+}
+
+/* Scroll personalizado para el modal */
+.compact-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.compact-body::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 3px;
+}
+
+.compact-body::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 3px;
+}
+
+.compact-body::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
