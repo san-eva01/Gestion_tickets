@@ -23,8 +23,10 @@ document.addEventListener("DOMContentLoaded", function () {
     setupEventListeners();
   }
 
+  // AGREGAR ESTA FUNCIÓN
   async function loadRealDeliverables() {
     try {
+      // Obtener tickets que están en revisión o completados
       const { data: ticketsData, error: ticketsError } = await supabaseClient
         .from("ticket")
         .select(
@@ -39,11 +41,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (ticketsError) throw ticketsError;
 
+      // Convertir tickets a formato de entregables
       realDeliverables = ticketsData.map((ticket) => ({
         id: `DEL-${ticket.id_ticket}`,
         order_id: `TKT-${ticket.id_ticket}`,
         title: ticket.titulo,
-        description: ticket.descripcion || "No hay descripción disponible", // Añadido campo descripción
         type: ticket.categoria,
         creative: {
           id: ticket.id_usuario_asignado,
@@ -57,12 +59,22 @@ document.addEventListener("DOMContentLoaded", function () {
             ? ticket.fecha_limite?.split("T")[0]
             : null,
         client: ticket.cliente?.nombre || "Sin cliente",
-        files: [{ name: `${ticket.titulo}.pdf`, type: "pdf" }],
+        files: (ticket.entregables || []).map((url) => {
+          const fileName = decodeURIComponent(url.split('/').pop());
+          const ext = fileName.split('.').pop().toLowerCase();
+          return {
+            name: fileName,
+            type: ext,
+            url: url,
+          };
+        }),
         comments: [],
         feedback: ticket.estado === "approved" ? "Entregable aprobado" : null,
       }));
 
+      // Actualizar variable global
       mockDeliverables = realDeliverables;
+
       console.log("Entregables cargados:", mockDeliverables.length);
     } catch (error) {
       console.error("Error al cargar entregables:", error);
@@ -101,8 +113,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     deliverablesToRender.forEach((deliverable) => {
       const row = document.createElement("tr");
-      row.className = "clickable-row";
-      row.setAttribute("data-id", deliverable.id);
       row.innerHTML = `
                 <td>${deliverable.id}</td>
                 <td>${deliverable.title}</td>
@@ -125,13 +135,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="action-buttons">
                         <button class="btn-icon view" onclick="viewDeliverable('${
                           deliverable.id
-                        }', event)">
+                        }')">
                             <i class="fas fa-eye"></i>
                         </button>
                         ${
                           deliverable.status === "pending"
                             ? `
-                            <button class="btn-icon edit" onclick="reviewDeliverable('${deliverable.id}', event)">
+                            <button class="btn-icon edit" onclick="reviewDeliverable('${deliverable.id}')">
                                 <i class="fas fa-clipboard-check"></i>
                             </button>
                         `
@@ -141,17 +151,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 </td>
             `;
       deliverableTableBody.appendChild(row);
-    });
-
-    // Agregar evento click a las filas
-    document.querySelectorAll(".clickable-row").forEach(row => {
-      row.addEventListener("click", function(e) {
-        // Verificar si el click fue en un botón de acción
-        if (!e.target.closest(".action-buttons")) {
-          const deliverableId = this.getAttribute("data-id");
-          viewDeliverable(deliverableId);
-        }
-      });
     });
   }
 
@@ -178,153 +177,276 @@ document.addEventListener("DOMContentLoaded", function () {
     renderDeliverables(filtered);
   }
 
-  window.viewDeliverable = function (deliverableId, event = null) {
-    if (event) {
-      event.stopPropagation();
+window.approveDeliverable = async function() {
+    const deliverableId = document.getElementById('viewDeliverableId').textContent;
+    const ticketId = deliverableId.replace('DEL-', ''); // Extract numeric ID
+
+    try {
+        // Update ticket status in database
+        const { error } = await supabaseClient
+            .from('ticket')
+            .update({ 
+                estado: 'approved',
+                fecha_limite: new Date().toISOString() // Set completion date
+            })
+            .eq('id_ticket', ticketId);
+
+        if (error) throw error;
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('viewDeliverableModal'));
+        modal.hide();
+
+        // Update UI
+        const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+        if (deliverable) {
+            deliverable.status = 'approved';
+            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+        }
+
+        // Refresh deliverables list
+        renderDeliverables();
+
+        // Show success message
+        showAlert('Entregable aprobado con éxito', 'success');
+
+    } catch (err) {
+        console.error('Error al aprobar entregable:', err);
+        showAlert('Error al aprobar el entregable', 'danger');
     }
-    
-    const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
-    if (!deliverable) return;
-
-    document.getElementById("viewDeliverableId").textContent = deliverable.id;
-    document.getElementById("viewDeliverableTitle").textContent =
-      deliverable.title;
-    document.getElementById("viewDeliverableType").textContent = getTypeName(
-      deliverable.type
-    );
-    document.getElementById(
-      "viewDeliverableType"
-    ).className = `type-badge ${deliverable.type}`;
-    document.getElementById("viewDeliverableStatus").textContent =
-      getStatusName(deliverable.status);
-    document.getElementById(
-      "viewDeliverableStatus"
-    ).className = `status-badge ${deliverable.status}`;
-    document.getElementById("viewDeliverableCreative").textContent =
-      deliverable.creative.name;
-    document.getElementById("viewDeliverableClient").textContent =
-      deliverable.client;
-    document.getElementById("viewDeliverableSubmitted").textContent =
-      formatDate(deliverable.submitted_date);
-
- // Mostrar la descripción del ticket
-    const descriptionElement = document.getElementById("viewDeliverableDescription");
-    descriptionElement.innerHTML = deliverable.description || "<p class='text-muted'>No hay descripción disponible</p>";
+};
 
 
-    if (deliverable.reviewed_date) {
-      document.getElementById("viewDeliverableReviewed").textContent =
-        formatDate(deliverable.reviewed_date);
-      document.getElementById("viewReviewedDateGroup").style.display = "block";
-    } else {
-      document.getElementById("viewReviewedDateGroup").style.display = "none";
-    }
+window.reviewDeliverable = function (deliverableId) {
+  const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+  if (!deliverable) return;
 
-    const filesList = document.getElementById("viewDeliverableFiles");
-    filesList.innerHTML = "";
+  // Mostrar datos básicos
+  document.getElementById("viewDeliverableId").textContent = deliverable.id;
+  document.getElementById("viewDeliverableTitle").textContent = deliverable.title;
+  document.getElementById("viewDeliverableType").textContent = getTypeName(deliverable.type);
+  document.getElementById("viewDeliverableType").className = `type-badge ${deliverable.type}`;
+  document.getElementById("viewDeliverableStatus").textContent = getStatusName(deliverable.status);
+  document.getElementById("viewDeliverableStatus").className = `status-badge ${deliverable.status}`;
+  document.getElementById("viewDeliverableCreative").textContent = deliverable.creative.name;
+  document.getElementById("viewDeliverableClient").textContent = deliverable.client;
+  document.getElementById("viewDeliverableSubmitted").textContent = formatDate(deliverable.submitted_date);
 
-    if (deliverable.files && deliverable.files.length > 0) {
-      deliverable.files.forEach((file) => {
-        const icon = getFileIcon(file.type);
+  if (deliverable.reviewed_date) {
+    document.getElementById("viewDeliverableReviewed").textContent = formatDate(deliverable.reviewed_date);
+    document.getElementById("viewReviewedDateGroup").style.display = "block";
+  } else {
+    document.getElementById("viewReviewedDateGroup").style.display = "none";
+  }
+
+  // Archivos adjuntos
+  const filesList = document.getElementById("viewDeliverableFiles");
+  filesList.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando archivos...</div>';
+
+  const ticketId = deliverableId.replace("DEL-", "");
+
+  (async () => {
+    try {
+      const { data, error } = await supabaseClient
+        .from("ticket")
+        .select("entregables")
+        .eq("id_ticket", ticketId)
+        .single();
+
+      if (error) throw error;
+
+      const entregables = data?.entregables || [];
+
+      if (!entregables.length) {
+        filesList.innerHTML = '<p class="text-muted text-center">No hay archivos adjuntos</p>';
+        return;
+      }
+
+      filesList.innerHTML = "";
+
+      entregables.forEach(url => {
+        const filename = decodeURIComponent(url.split("/").pop());
+        const ext = filename.split(".").pop().toLowerCase();
+        const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext);
+        const isPDF = ext === "pdf";
+
         const fileItem = document.createElement("div");
-        fileItem.className = "attachment-item";
+        fileItem.className = "attachment-item mb-3 p-3 border rounded bg-light";
+
+        const preview = isImage
+          ? `<img src="${url}" alt="${filename}" class="img-fluid rounded shadow-sm" style="max-height: 200px;">`
+          : isPDF
+            ? `<embed src="${url}" type="application/pdf" width="100%" height="200px" class="rounded shadow-sm">`
+            : "";
+
         fileItem.innerHTML = `
-                    <i class="${icon}"></i>
-                    <a href="#" onclick="downloadFile('${file.name}'); return false;">${file.name}</a>
-                `;
+          <div class="row align-items-center">
+            <div class="col-md-4 text-center mb-3 mb-md-0">${preview}</div>
+            <div class="col-md-8">
+              <div class="d-flex flex-column justify-content-between h-100">
+                <div class="mb-2">
+                  <i class="${getFileIcon(ext)} text-primary me-2"></i>
+                  <strong>${filename}</strong>
+                </div>
+                <div>
+                  <a href="#" onclick="forceDownload('${url}', '${filename}'); return false;" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-download me-1"></i> Descargar
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
         filesList.appendChild(fileItem);
       });
+    } catch (err) {
+      console.error("Error al cargar archivos:", err);
+      filesList.innerHTML = `
+        <div class="alert alert-danger mb-0">
+          <i class="fas fa-exclamation-circle me-2"></i>Error al cargar los archivos
+        </div>`;
     }
+  })();
 
-    const feedbackSection = document.getElementById("viewFeedbackSection");
-    if (deliverable.feedback) {
-      document.getElementById("viewFeedback").textContent =
-        deliverable.feedback;
-      feedbackSection.style.display = "block";
-    } else {
-      feedbackSection.style.display = "none";
+  // Feedback y comentarios
+  const feedbackSection = document.getElementById("viewFeedbackSection");
+  if (deliverable.feedback) {
+    document.getElementById("viewFeedback").textContent = deliverable.feedback;
+    feedbackSection.style.display = "block";
+  } else {
+    feedbackSection.style.display = "none";
+  }
+
+  const commentsContainer = document.getElementById("viewDeliverableComments");
+  commentsContainer.innerHTML = "";
+
+  if (deliverable.comments?.length > 0) {
+    deliverable.comments.forEach(comment => {
+      const commentElement = document.createElement("div");
+      commentElement.className = "comment";
+      commentElement.innerHTML = `
+        <div class="comment-avatar">${comment.user.avatar}</div>
+        <div class="comment-content">
+          <div class="comment-header">
+            <span class="comment-author">${comment.user.name}</span>
+            <span class="comment-date">${formatDateTime(comment.date)}</span>
+          </div>
+          <p class="comment-text">${comment.text}</p>
+        </div>`;
+      commentsContainer.appendChild(commentElement);
+    });
+  } else {
+    commentsContainer.innerHTML = '<p class="text-center text-muted">No hay comentarios</p>';
+  }
+
+  // Botón Aprobar
+  document.getElementById("approveDeliverableBtn").onclick = async () => {
+  const deliverableId = document.getElementById('viewDeliverableId').textContent;
+    const ticketId = deliverableId.replace('DEL-', ''); // Extract numeric ID
+
+    try {
+        // Update ticket status in database
+        const { error } = await supabaseClient
+            .from('ticket')
+            .update({ 
+                estado: 'approved',
+                fecha_limite: new Date().toISOString() // Set completion date
+            })
+            .eq('id_ticket', ticketId);
+
+        if (error) throw error;
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('viewDeliverableModal'));
+        modal.hide();
+
+        // Update UI
+        const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+        if (deliverable) {
+            deliverable.status = 'approved';
+            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+        }
+
+        // Refresh deliverables list
+        renderDeliverables();
+
+        // Show success message
+        showAlert('Entregable aprobado con éxito', 'success');
+
+    } catch (err) {
+        console.error('Error al aprobar entregable:', err);
+        showAlert('Error al aprobar el entregable', 'danger');
     }
-
-    const commentsContainer = document.getElementById(
-      "viewDeliverableComments"
-    );
-    commentsContainer.innerHTML = "";
-
-    if (deliverable.comments && deliverable.comments.length > 0) {
-      deliverable.comments.forEach((comment) => {
-        const commentElement = document.createElement("div");
-        commentElement.className = "comment";
-        commentElement.innerHTML = `
-                    <div class="comment-avatar">${comment.user.avatar}</div>
-                    <div class="comment-content">
-                        <div class="comment-header">
-                            <span class="comment-author">${
-                              comment.user.name
-                            }</span>
-                            <span class="comment-date">${formatDateTime(
-                              comment.date
-                            )}</span>
-                        </div>
-                        <p class="comment-text">${comment.text}</p>
-                    </div>
-                `;
-        commentsContainer.appendChild(commentElement);
-      });
-    } else {
-      commentsContainer.innerHTML =
-        '<p class="text-center text-muted">No hay comentarios</p>';
-    }
-
-    const viewDeliverableModal = new bootstrap.Modal(
-      document.getElementById("viewDeliverableModal")
-    );
-    viewDeliverableModal.show();
   };
 
-  window.reviewDeliverable = function (deliverableId, event = null) {
-    if (event) {
-      event.stopPropagation();
+  // Botón Rechazar
+  document.getElementById("confirmRejectBtn").onclick = async () => {
+    const comment = document.getElementById("rejectComment").value.trim();
+    if (!comment) {
+      alert("Ingresa un motivo del rechazo.");
+      return;
     }
     
-    const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
-    if (!deliverable) return;
+    const deliverableId = document.getElementById('viewDeliverableId').textContent;
+    const ticketId = deliverableId.replace('DEL-', ''); // Extract numeric ID
 
-    document.getElementById("reviewDeliverableId").textContent = deliverable.id;
-    document.getElementById("reviewDeliverableTitle").textContent =
-      deliverable.title;
-    document.getElementById("reviewDeliverableCreative").textContent =
-      deliverable.creative.name;
-    document.getElementById("reviewDeliverableClient").textContent =
-      deliverable.client;
+    try {
+        // Update ticket status in database
+        const { error } = await supabaseClient
+            .from('ticket')
+            .update({ 
+                estado: 'rejected',
+                fecha_limite: new Date().toISOString() // Set completion date
+            })
+            .eq('id_ticket', ticketId);
 
-    const filesList = document.getElementById("reviewDeliverableFiles");
-    filesList.innerHTML = "";
+        if (error) throw error;
 
-    if (deliverable.files && deliverable.files.length > 0) {
-      deliverable.files.forEach((file) => {
-        const icon = getFileIcon(file.type);
-        const fileItem = document.createElement("div");
-        fileItem.className = "attachment-item";
-        fileItem.innerHTML = `
-                    <i class="${icon}"></i>
-                    <a href="#" onclick="downloadFile('${file.name}'); return false;">${file.name}</a>
-                `;
-        filesList.appendChild(fileItem);
-      });
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('viewDeliverableModal'));
+        modal.hide();
+
+        // Update UI
+        const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+        if (deliverable) {
+            deliverable.status = 'rejected';
+            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+        }
+
+        // Refresh deliverables list
+        renderDeliverables();
+
+        // Show success message
+        showAlert('Entregable aprobado con éxito', 'success');
+
+    } catch (err) {
+        console.error('Error al aprobar entregable:', err);
+        showAlert('Error al aprobar el entregable', 'danger');
     }
-
-    document.getElementById("reviewFeedback").value = "";
-
-    const reviewForm = document.getElementById("reviewForm");
-    reviewForm.onsubmit = function (e) {
-      e.preventDefault();
-      submitReview(deliverableId);
-    };
-
-    reviewModal.show();
+    
   };
 
-  function submitReview(deliverableId) {
+  const viewDeliverableModal = new bootstrap.Modal(document.getElementById("viewDeliverableModal"));
+  viewDeliverableModal.show();
+  
+    viewDeliverableModal.hide();
+            
+        deliverable = mockDeliverables.find(d => d.id === deliverableId);
+        if (deliverable) {
+            deliverable.status = 'approved';
+            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+        }
+
+        // Refresh deliverables list
+        renderDeliverables();
+
+  
+};
+
+
+
+  async function submitReview(deliverableId) {
     const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
     if (!deliverable) return;
 
@@ -339,6 +461,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     deliverable.status = decision === "approve" ? "approved" : "rejected";
+    const task = mockDeliverables[deliverableId];
+
+    const ticketId = deliverableId.replace(/[^\d]/g, "");
+
+    const { data, error } = await supabaseClient
+      .from('ticket')
+      .update({ estado: deliverable.status })
+      .eq('id_ticket', ticketId); 
+
+    const resultado = document.getElementById("resultado");
+
+    if (error) {
+      console.error("❌ Error al actualizar:", error);
+      if (resultado) {
+        resultado.textContent = "Error: " + error.message;
+      }
+      return;
+    }
     deliverable.reviewed_date = new Date().toISOString().split("T")[0];
     deliverable.feedback = feedback;
 
@@ -476,12 +616,8 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => alert.remove(), 5000);
   }
 
+  // AGREGAR al final
   loadRealDeliverables().then(() => {
     renderDeliverables();
   });
-
-
-
-
-  
 });

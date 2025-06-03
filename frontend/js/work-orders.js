@@ -31,7 +31,7 @@ async function setupStorageBucket() {
 }
 
 // Ejecutar esta función una vez para crear el bucket
- //setupStorageBucket();
+ setupStorageBucket();
 
 
   // Elementos del DOM

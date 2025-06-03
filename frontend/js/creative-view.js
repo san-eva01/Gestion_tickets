@@ -192,28 +192,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }).length;
   }
 
-  function renderAllTickets() {
+function renderAllTickets() {
     document.getElementById("pending-tasks-container").innerHTML = "";
     document.getElementById("in-progress-tasks-container").innerHTML = "";
+    document.getElementById("review-tasks-container").innerHTML = ""; // Add this line
     document.getElementById("completed-tasks-container").innerHTML = "";
 
     Object.values(mockTasks).forEach((task) => {
-      const card = createTaskCard(task);
+        const card = createTaskCard(task);
 
-      if (task.status === "assigned") {
-        document.getElementById("pending-tasks-container").appendChild(card);
-      } else if (task.status === "in-progress") {
-        document
-          .getElementById("in-progress-tasks-container")
-          .appendChild(card);
-      } else if (task.status === "delivered" || task.status === "approved") {
-        document.getElementById("completed-tasks-container").appendChild(card);
-      }
+        if (task.status === "assigned") {
+            document.getElementById("pending-tasks-container").appendChild(card);
+        } else if (task.status === "in-progress") {
+            document.getElementById("in-progress-tasks-container").appendChild(card);
+        } else if (task.status === "review") { // Add this condition
+            document.getElementById("review-tasks-container").appendChild(card);
+        } else if (task.status === "delivered" || task.status === "approved") {
+            document.getElementById("completed-tasks-container").appendChild(card);
+        }
     });
 
     updateRealCounters();
     renderUpcomingDeliveriesTable();
-  }
+}
+
 
   function renderUpcomingDeliveriesTable() {
     const tableBody = document.querySelector(".custom-table tbody");
@@ -288,7 +290,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <button class="btn-info" onclick="viewTask('${task.id}')">
                     <i class="fas fa-eye"></i> Ver
                 </button>
-                <button class="btn-warning" onclick="submitForReview('${task.id}')">
+                <button class="btn-warning" onclick="handleDeliveryConfirmation('${task.id}')">
                     <i class="fas fa-clipboard-check"></i> Entregar
                 </button>
             `;
@@ -406,104 +408,238 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("due-count").textContent = dueSoon;
   }
 
-  window.startTask = function (taskId) {
-    const task = mockTasks[taskId];
-    if (task) {
+window.startTask = async function (taskId) {
+  console.log("🔍 taskId recibido:", taskId);
+
+  const task = mockTasks[taskId];
+
+  const ticketId = taskId.replace("TKT-", ""); 
+
+  const { data, error } = await supabaseClient
+    .from('ticket')
+    .update({ estado: "in-progress" })
+    .eq('id_ticket', ticketId); 
+
+  const resultado = document.getElementById("resultado");
+
+  if (error) {
+    console.error("❌ Error al actualizar:", error);
+    if (resultado) {
+      resultado.textContent = "Error: " + error.message;
+    }
+    return;
+  }
+
+  if (resultado) {
+    resultado.textContent = "Ticket actualizado correctamente.";
+  }
+  if (task) {
       task.status = "in-progress";
       task.progress = 5;
-      task.timeline.push({
-        date: new Date().toISOString(),
-        action: "status_change",
-        user: "Carlos Ruiz",
-        from_status: "assigned",
-        to_status: "in-progress",
-      });
+  }
+  showAlert(`Ticket "${task.title}" iniciado`, "success");
+  renderAllTickets();
+}
 
-      task.timeline.push({
-        date: new Date().toISOString(),
-        action: "progress_update",
-        user: "Carlos Ruiz",
-        progress: "5%",
-      });
+window.handleDeliveryConfirmation = async function (taskId) {
+  const task = mockTasks[taskId];
+const modalHTML = `
+    <div class="modal fade" id="deliveryModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow border-0 rounded-3 overflow-hidden">
+          <!-- Header -->
+          <div class="modal-header bg-gradient-primary text-white py-3" 
+               style="background: linear-gradient(135deg, var(--primary-color), var(--accent-color))">
+            <h5 class="modal-title d-flex align-items-center gap-2 mb-0" style="color:#ffffff;">
+              <i class="fas fa-paper-plane"></i> 
+              Entregar Ticket #${task.id}
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
 
-      showAlert(`Ticket "${task.title}" iniciado`, "success");
-      renderAllTickets();
-    }
-  };
+          <!-- Body -->
+          <div class="modal-body p-4">
+            <!-- Ticket Details -->
+            <div class="bg-light p-4 rounded-3 shadow-sm mb-4">
+              <h6 class="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-info-circle"></i> 
+                Detalles del Ticket
+              </h6>
+              
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-semibold">Título</label>
+                  <div class="fw-medium">${task.title}</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-semibold">Cliente</label>
+                  <div class="fw-medium">${task.client}</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-semibold">Categoría</label>
+                  <div><span class="type-badge ${task.type}">${getTypeName(task.type)}</span></div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-semibold">Prioridad</label>
+                  <div><span class="priority-badge ${task.priority}">${getPriorityName(task.priority)}</span></div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label text-muted small fw-semibold">Descripción</label>
+                  <div class="text-muted small">${task.description || "Sin descripción"}</div>
+                </div>
+              </div>
+            </div>
 
-  window.submitForReview = function (taskId) {
-    const task = mockTasks[taskId];
-    if (!task) return;
+            <!-- File Upload -->
+            <div class="bg-white p-4 rounded-3 shadow-sm border">
+              <h6 class="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Archivos Entregables
+              </h6>
+              
+              <div class="file-upload-container bg-light rounded-3 p-4 text-center position-relative">
+                <input type="file" id="deliveryFiles" multiple 
+                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0" 
+                       style="cursor: pointer;">
+                <div class="py-3">
+                  <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                  <p class="mb-1 fw-medium">Arrastra archivos aquí o haz clic para seleccionar</p>
+                  <p class="text-muted small mb-0">Formatos soportados: PDF, Word, Excel, PowerPoint, ZIP, Imágenes</p>
+                </div>
+              </div>
+              
+              <div id="deliveryFilesList" class="mt-3">
+                <!-- Files will be listed here -->
+              </div>
+            </div>
+          </div>
 
-    if (taskModalInstance) {
-      taskModalInstance.hide();
-    }
+          <!-- Footer -->
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              <i class="fas fa-times me-2"></i>Cancelar
+            </button>
+            <button type="button" class="btn btn-success px-4" id="confirmDeliveryBtn">
+              <i class="fas fa-check-circle me-2"></i>Confirmar Entrega
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  // Add modal to document
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    viewTask(taskId);
+  // Get modal elements
+  const deliveryModal = new bootstrap.Modal(document.getElementById('deliveryModal'));
+  const deliveryFiles = document.getElementById('deliveryFiles');
+  const deliveryFilesList = document.getElementById('deliveryFilesList');
+  const confirmDeliveryBtn = document.getElementById('confirmDeliveryBtn');
 
-    setTimeout(() => {
-      const modalElement = document.getElementById("viewTaskModal");
-      if (!modalElement || !taskModalInstance) return;
-
-      const modalTitle = modalElement.querySelector(".modal-title");
-      if (modalTitle) modalTitle.textContent = `Entregar Ticket #${task.id}`;
-
-      const deliverableSection = modalElement.querySelector(
-        "#deliverableSection"
-      );
-      if (deliverableSection) {
-        deliverableSection.style.display = "block";
-        deliverableSection.scrollIntoView({ behavior: "smooth" });
+  // Setup file upload handling
+  deliveryFiles.addEventListener('change', function() {
+    deliveryFilesList.innerHTML = '';
+    
+    if (this.files.length > 0) {
+      for (const file of this.files) {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+          <span><i class="${getFileIcon(file.name.split('.').pop())} me-2"></i>${file.name}</span>
+          <i class="fas fa-times remove-file"></i>
+        `;
+        deliveryFilesList.appendChild(fileItem);
       }
 
-      const taskActions = modalElement.querySelector("#taskActions");
-      if (taskActions) {
-        taskActions.innerHTML = "";
+      // Setup remove file buttons
+      document.querySelectorAll('.remove-file').forEach(btn => {
+        btn.addEventListener('click', function() {
+          this.closest('.file-item').remove();
+        });
+      });
+    }
+  });
 
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "btn-success";
-        confirmBtn.innerHTML =
-          '<i class="fas fa-check-circle"></i> Confirmar Entrega';
-        confirmBtn.addEventListener("click", () =>
-          handleDeliveryConfirmation(task)
-        );
+confirmDeliveryBtn.addEventListener('click', async () => {
+  if (deliveryFiles.files.length === 0) {
+    showAlert('Debes subir al menos un entregable', 'warning');
+    return;
+  }
 
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn-secondary ms-2";
-        cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancelar';
-        cancelBtn.addEventListener("click", () => taskModalInstance.hide());
+  const ticketId = taskId.replace("TKT-", "");
+  const uploadedUrls = [];
 
-        taskActions.append(confirmBtn, cancelBtn);
+  try {
+    for (const file of deliveryFiles.files) {
+      const timestamp = Date.now();
+      const filePath = `${ticketId}/${timestamp}-${file.name}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from('ticket-attachments')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('❌ Error al subir archivo:', uploadError);
+        showAlert(`Error al subir archivo: ${file.name}`, 'danger');
+        return;
       }
-    }, 50);
-  };
 
-  function handleDeliveryConfirmation(task) {
-    const modalElement = document.getElementById("viewTaskModal");
-    const deliverablesList = modalElement.querySelector("#deliverablesList");
+      const publicUrl = `${supabaseClient.storage
+        .from('ticket-attachments')
+        .getPublicUrl(filePath).data.publicUrl}`;
 
-    if (
-      deliverablesList.children.length === 0 &&
-      (!task.deliverables || task.deliverables.length === 0)
-    ) {
-      showAlert("Debes subir al menos un entregable", "warning");
+      uploadedUrls.push(publicUrl);
+    }
+
+    // Actualizar ticket en la tabla
+    const { error: updateError } = await supabaseClient
+      .from('ticket')
+      .update({
+        estado: 'review',
+        entregables: uploadedUrls
+      })
+      .eq('id_ticket', ticketId);
+
+    if (updateError) {
+      console.error("❌ Error al actualizar ticket:", updateError);
+      showAlert("Error al actualizar el ticket", 'danger');
       return;
     }
 
-    task.status = "delivered";
-    task.progress = 100;
+    // Actualizar estado local
+    task.status = 'review';
+    task.timeline = task.timeline || [];
     task.timeline.push({
       date: new Date().toISOString(),
-      action: "status_change",
-      user: "Carlos Ruiz",
-      from_status: "in-progress",
-      to_status: "delivered",
+      action: 'status_change',
+      user: currentUser.nombre,
+      from_status: 'in-progress',
+      to_status: 'review'
     });
 
-    taskModalInstance.hide();
-    showAlert(`Ticket "${task.title}" entregado`, "success");
+    // Cerrar modal
+    deliveryModal.hide();
+    if (taskModalInstance) taskModalInstance.hide();
+    document.getElementById('deliveryModal').remove();
+
+    showAlert(`Ticket "${task.title}" enviado a revisión`, 'success');
     renderAllTickets();
+
+  } catch (error) {
+    console.error("❌ Error en entrega:", error);
+    showAlert('Ocurrió un error al entregar el ticket', 'danger');
   }
+});
+
+
+  // Show the modal
+  deliveryModal.show();
+}
+
+
 
   let taskModalInstance = null;
 
@@ -855,7 +991,7 @@ document.addEventListener("DOMContentLoaded", function () {
               return;
             }
           }
-          submitForReview(task.id);
+          handleDeliveryConfirmation(task.id);
         });
         taskActions.appendChild(reviewBtn);
         break;

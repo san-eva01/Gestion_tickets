@@ -4,17 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Revisar Entregables - Gestión de Tickets</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <link href="css/styles.css" rel="stylesheet" />
-    <style>
-      .clickable-row {
-        cursor: pointer;
-      }
-      .clickable-row:hover {
-        background-color: #f5f5f5;
-      }
-    </style>
+    <link rel="icon" href="Taskflow.png" type="image/png">
   </head>
   <body>
     <div class="page-wrapper">
@@ -29,6 +28,7 @@
           <li>
             <a href="work-orders.html"><i class="fas fa-tasks"></i> Tickets</a>
           </li>
+          <li><a href="client-productivity.html"><i class="fas fa-chart-line"></i> Productividad Clientes</a></li>
           <li>
             <a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a>
           </li>
@@ -43,6 +43,7 @@
               ><i class="fas fa-clipboard-check"></i> Revisar Entregables</a
             >
           </li>
+          <!-- <li><a href="settings.html"><i class="fas fa-cogs"></i> Configuración</a></li> -->
           <li>
             <a href="#" id="logout"
               ><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a
@@ -110,8 +111,12 @@
       </main>
     </div>
 
-    <!-- Modal para ver detalles del entregable - VERSIÓN MEJORADA -->
-    <div class="modal fade" id="viewDeliverableModal" tabindex="-1" aria-hidden="true">
+    <div
+      class="modal fade"
+      id="viewDeliverableModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
@@ -131,7 +136,6 @@
               <div class="order-meta">
                 <span class="type-badge" id="viewDeliverableType"></span>
                 <span class="status-badge" id="viewDeliverableStatus"></span>
-                <span class="priority-badge" id="viewDeliverablePriority"></span>
               </div>
             </div>
 
@@ -146,18 +150,10 @@
                     <label>Cliente:</label>
                     <p id="viewDeliverableClient"></p>
                   </div>
-                  <div class="detail-group">
-                    <label>Creado por:</label>
-                    <p id="viewDeliverableCreator"></p>
-                  </div>
                 </div>
                 <div class="col-md-6">
                   <div class="detail-group">
-                    <label>Fecha Creación:</label>
-                    <p id="viewDeliverableCreated"></p>
-                  </div>
-                  <div class="detail-group">
-                    <label>Fecha Entrega:</label>
+                    <label>Fecha de Entrega:</label>
                     <p id="viewDeliverableSubmitted"></p>
                   </div>
                   <div class="detail-group" id="viewReviewedDateGroup">
@@ -168,44 +164,42 @@
               </div>
 
               <div class="detail-group">
-                <label>Descripción:</label>
-                <div class="description-box" id="viewDeliverableDescription"></div>
-              </div>
-
-              <div class="detail-group">
-                <label>Archivos Adjuntos:</label>
+                <label>Entregables:</label>
                 <div class="attachments-list" id="viewDeliverableFiles"></div>
               </div>
 
-              <div class="detail-group" id="viewFeedbackSection" style="display: none">
+              <div
+                class="detail-group"
+                id="viewFeedbackSection"
+                style="display: none"
+              >
                 <label>Feedback:</label>
                 <div class="description-box" id="viewFeedback"></div>
               </div>
 
-              <div class="order-timeline">
-                <h4>Historial</h4>
-                <div class="timeline" id="viewDeliverableTimeline"></div>
-              </div>
-
               <div class="order-comments">
                 <h4>Comentarios</h4>
-                <div class="comments-container" id="viewDeliverableComments"></div>
+                <div
+                  class="comments-container"
+                  id="viewDeliverableComments"
+                ></div>
               </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn-secondary" data-bs-dismiss="modal">
-              Cerrar
-            </button>
-            <button type="button" class="btn-primary" id="editDeliverableBtn">
-              <i class="fas fa-edit"></i> Editar
-            </button>
+            <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="button" class="btn-success" id="approveDeliverableBtn" onclick="approveDeliverable()">
+                <i class="fas fa-check"></i> Aprobar
+<button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Rechazar</button>
+
+        </div>
+
+
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal para revisar entregable (se mantiene igual) -->
     <div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -303,10 +297,30 @@
       </div>
     </div>
 
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Rechazar entregable</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label for="rejectComment" class="form-label">Motivo del rechazo:</label>
+        <textarea id="rejectComment" class="form-control" rows="4" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar/Cancelar</button>
+        <button id="confirmRejectBtn" class="btn btn-danger">Rechazar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
     <div id="alertContainer" class="alert-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="js/main.js"></script>
     <script src="js/review-deliverables.js"></script>
   </body>
