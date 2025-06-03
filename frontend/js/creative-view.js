@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
         progress: ticket.progreso || 0,
         created_by: creatorUser ? creatorUser.nombre : "Sistema",
         attachments: [],
-        comments: [],
+        comments: ticket.comentarios,
         timeline: [
           {
             date: ticket.fecha_creacion,
@@ -287,9 +287,6 @@ function renderAllTickets() {
             `;
     } else if (task.status === "in-progress") {
       actionButtons = `
-                <button class="btn-info" onclick="viewTask('${task.id}')">
-                    <i class="fas fa-eye"></i> Ver
-                </button>
                 <button class="btn-warning" onclick="handleDeliveryConfirmation('${task.id}')">
                     <i class="fas fa-clipboard-check"></i> Entregar
                 </button>
@@ -350,7 +347,7 @@ function renderAllTickets() {
                     : ""
                 }
                 <div class="order-description mt-2">
-                    <p>${task.description}</p>
+                    <p>${task.comments}</p>
                 </div>
             </div>
             <div class="order-card-footer">
@@ -484,8 +481,8 @@ const modalHTML = `
                   <div><span class="priority-badge ${task.priority}">${getPriorityName(task.priority)}</span></div>
                 </div>
                 <div class="col-12">
-                  <label class="form-label text-muted small fw-semibold">Descripción</label>
-                  <div class="text-muted small">${task.description || "Sin descripción"}</div>
+                  <label class="form-label text-muted small fw-semibold">Comentarios/Observaciones</label>
+                  <div class="text-muted small">${task.comments || "Sin comentarios"}</div>
                 </div>
               </div>
             </div>

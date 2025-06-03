@@ -382,7 +382,7 @@ window.reviewDeliverable = function (deliverableId) {
 
   // Botón Rechazar
   document.getElementById("confirmRejectBtn").onclick = async () => {
-    const comment = document.getElementById("rejectComment").value.trim();
+    const comment = "OBSERVACIONES HECHAS POR EL J.O:  " + document.getElementById("rejectComment").value.trim();
     if (!comment) {
       alert("Ingresa un motivo del rechazo.");
       return;
@@ -396,7 +396,8 @@ window.reviewDeliverable = function (deliverableId) {
         const { error } = await supabaseClient
             .from('ticket')
             .update({ 
-                estado: 'rejected',
+                estado: 'in-progress',
+                comentarios: comment,
                 fecha_limite: new Date().toISOString() // Set completion date
             })
             .eq('id_ticket', ticketId);
@@ -404,8 +405,9 @@ window.reviewDeliverable = function (deliverableId) {
         if (error) throw error;
 
         // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('viewDeliverableModal'));
-        modal.hide();
+        const rejectModal = bootstrap.Modal.getInstance(document.getElementById('rejectModal'));
+        if (rejectModal) rejectModal.hide();
+
 
         // Update UI
         const deliverable = mockDeliverables.find(d => d.id === deliverableId);
@@ -418,7 +420,7 @@ window.reviewDeliverable = function (deliverableId) {
         renderDeliverables();
 
         // Show success message
-        showAlert('Entregable aprobado con éxito', 'success');
+        showAlert('Entregable rechazado con éxito', 'success');
 
     } catch (err) {
         console.error('Error al aprobar entregable:', err);
