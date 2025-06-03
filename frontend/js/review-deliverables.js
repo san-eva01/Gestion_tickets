@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
   const supabaseUrl = "https://onbgqjndemplsgxdaltr.supabase.co";
-  const supabaseKey =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw";
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
   let realDeliverables = [];
 
@@ -10,9 +9,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const statusFilter = document.getElementById("statusFilter");
   const typeFilter = document.getElementById("typeFilter");
 
-  const reviewModal = new bootstrap.Modal(
-    document.getElementById("reviewModal")
-  );
+  const viewDeliverableModal = new bootstrap.Modal(document.getElementById("viewDeliverableModal"));
+  const rejectModal = new bootstrap.Modal(document.getElementById("rejectModal"));
 
   let mockDeliverables = [];
 
@@ -23,10 +21,8 @@ document.addEventListener("DOMContentLoaded", function () {
     setupEventListeners();
   }
 
-  // AGREGAR ESTA FUNCIÓN
   async function loadRealDeliverables() {
     try {
-      // Obtener tickets que están en revisión o completados
       const { data: ticketsData, error: ticketsError } = await supabaseClient
         .from("ticket")
         .select(
@@ -41,7 +37,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (ticketsError) throw ticketsError;
 
-      // Convertir tickets a formato de entregables
       realDeliverables = ticketsData.map((ticket) => ({
         id: `DEL-${ticket.id_ticket}`,
         order_id: `TKT-${ticket.id_ticket}`,
@@ -72,9 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
         feedback: ticket.estado === "approved" ? "Entregable aprobado" : null,
       }));
 
-      // Actualizar variable global
       mockDeliverables = realDeliverables;
-
       console.log("Entregables cargados:", mockDeliverables.length);
     } catch (error) {
       console.error("Error al cargar entregables:", error);
@@ -95,6 +88,20 @@ document.addEventListener("DOMContentLoaded", function () {
     searchInput.addEventListener("input", filterDeliverables);
     statusFilter.addEventListener("change", filterDeliverables);
     typeFilter.addEventListener("change", filterDeliverables);
+    
+    // Evento para hacer click en las filas de la tabla
+    deliverableTableBody.addEventListener('click', function(e) {
+      const row = e.target.closest('tr');
+      if (!row) return;
+      
+      // Si el click fue en un botón de acción, no hacer nada (dejamos que su evento propio se maneje)
+      if (e.target.closest('.action-buttons')) {
+        return;
+      }
+      
+      const deliverableId = row.cells[0].textContent;
+      viewDeliverable(deliverableId);
+    });
   }
 
   function renderDeliverables(filteredDeliverables = null) {
@@ -133,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>${formatDate(deliverable.submitted_date)}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-icon view" onclick="viewDeliverable('${
+                        <button class="btn-icon view" onclick="event.stopPropagation(); viewDeliverable('${
                           deliverable.id
                         }')">
                             <i class="fas fa-eye"></i>
@@ -141,7 +148,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         ${
                           deliverable.status === "pending"
                             ? `
-                            <button class="btn-icon edit" onclick="reviewDeliverable('${deliverable.id}')">
+                            <button class="btn-icon edit" onclick="event.stopPropagation(); reviewDeliverable('${deliverable.id}')">
                                 <i class="fas fa-clipboard-check"></i>
                             </button>
                         `
@@ -177,357 +184,215 @@ document.addEventListener("DOMContentLoaded", function () {
     renderDeliverables(filtered);
   }
 
-window.approveDeliverable = async function() {
-    const deliverableId = document.getElementById('viewDeliverableId').textContent;
-    const ticketId = deliverableId.replace('DEL-', ''); // Extract numeric ID
+  window.viewDeliverable = function (deliverableId) {
+    const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+    if (!deliverable) return;
 
-    try {
-        // Update ticket status in database
-        const { error } = await supabaseClient
-            .from('ticket')
-            .update({ 
-                estado: 'approved',
-                fecha_limite: new Date().toISOString() // Set completion date
-            })
-            .eq('id_ticket', ticketId);
+    // Mostrar datos básicos
+    document.getElementById("viewDeliverableId").textContent = deliverable.id;
+    document.getElementById("viewDeliverableTitle").textContent = deliverable.title;
+    document.getElementById("viewDeliverableType").textContent = getTypeName(deliverable.type);
+    document.getElementById("viewDeliverableType").className = `type-badge ${deliverable.type}`;
+    document.getElementById("viewDeliverableStatus").textContent = getStatusName(deliverable.status);
+    document.getElementById("viewDeliverableStatus").className = `status-badge ${deliverable.status}`;
+    document.getElementById("viewDeliverableCreative").textContent = deliverable.creative.name;
+    document.getElementById("viewDeliverableClient").textContent = deliverable.client;
+    document.getElementById("viewDeliverableSubmitted").textContent = formatDate(deliverable.submitted_date);
+
+    if (deliverable.reviewed_date) {
+      document.getElementById("viewDeliverableReviewed").textContent = formatDate(deliverable.reviewed_date);
+      document.getElementById("viewReviewedDateGroup").style.display = "block";
+    } else {
+      document.getElementById("viewReviewedDateGroup").style.display = "none";
+    }
+
+    // Archivos adjuntos
+    const filesList = document.getElementById("viewDeliverableFiles");
+    filesList.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando archivos...</div>';
+
+    const ticketId = deliverableId.replace("DEL-", "");
+
+    (async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from("ticket")
+          .select("entregables")
+          .eq("id_ticket", ticketId)
+          .single();
 
         if (error) throw error;
 
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('viewDeliverableModal'));
-        modal.hide();
+        const entregables = data?.entregables || [];
 
-        // Update UI
-        const deliverable = mockDeliverables.find(d => d.id === deliverableId);
-        if (deliverable) {
-            deliverable.status = 'approved';
-            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+        if (!entregables.length) {
+          filesList.innerHTML = '<p class="text-muted text-center">No hay archivos adjuntos</p>';
+          return;
         }
 
-        // Refresh deliverables list
-        renderDeliverables();
+        filesList.innerHTML = "";
 
-        // Show success message
-        showAlert('Entregable aprobado con éxito', 'success');
+        entregables.forEach(url => {
+          const filename = decodeURIComponent(url.split("/").pop());
+          const ext = filename.split(".").pop().toLowerCase();
+          const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext);
+          const isPDF = ext === "pdf";
 
-    } catch (err) {
-        console.error('Error al aprobar entregable:', err);
-        showAlert('Error al aprobar el entregable', 'danger');
-    }
-};
+          const fileItem = document.createElement("div");
+          fileItem.className = "attachment-item mb-3 p-3 border rounded bg-light";
 
+          const preview = isImage
+            ? `<img src="${url}" alt="${filename}" class="img-fluid rounded shadow-sm" style="max-height: 200px;">`
+            : isPDF
+              ? `<embed src="${url}" type="application/pdf" width="100%" height="200px" class="rounded shadow-sm">`
+              : "";
 
-window.reviewDeliverable = function (deliverableId) {
-  const deliverable = mockDeliverables.find(d => d.id === deliverableId);
-  if (!deliverable) return;
-
-  // Mostrar datos básicos
-  document.getElementById("viewDeliverableId").textContent = deliverable.id;
-  document.getElementById("viewDeliverableTitle").textContent = deliverable.title;
-  document.getElementById("viewDeliverableType").textContent = getTypeName(deliverable.type);
-  document.getElementById("viewDeliverableType").className = `type-badge ${deliverable.type}`;
-  document.getElementById("viewDeliverableStatus").textContent = getStatusName(deliverable.status);
-  document.getElementById("viewDeliverableStatus").className = `status-badge ${deliverable.status}`;
-  document.getElementById("viewDeliverableCreative").textContent = deliverable.creative.name;
-  document.getElementById("viewDeliverableClient").textContent = deliverable.client;
-  document.getElementById("viewDeliverableSubmitted").textContent = formatDate(deliverable.submitted_date);
-
-  if (deliverable.reviewed_date) {
-    document.getElementById("viewDeliverableReviewed").textContent = formatDate(deliverable.reviewed_date);
-    document.getElementById("viewReviewedDateGroup").style.display = "block";
-  } else {
-    document.getElementById("viewReviewedDateGroup").style.display = "none";
-  }
-
-  // Archivos adjuntos
-  const filesList = document.getElementById("viewDeliverableFiles");
-  filesList.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando archivos...</div>';
-
-  const ticketId = deliverableId.replace("DEL-", "");
-
-  (async () => {
-    try {
-      const { data, error } = await supabaseClient
-        .from("ticket")
-        .select("entregables")
-        .eq("id_ticket", ticketId)
-        .single();
-
-      if (error) throw error;
-
-      const entregables = data?.entregables || [];
-
-      if (!entregables.length) {
-        filesList.innerHTML = '<p class="text-muted text-center">No hay archivos adjuntos</p>';
-        return;
-      }
-
-      filesList.innerHTML = "";
-
-      entregables.forEach(url => {
-        const filename = decodeURIComponent(url.split("/").pop());
-        const ext = filename.split(".").pop().toLowerCase();
-        const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext);
-        const isPDF = ext === "pdf";
-
-        const fileItem = document.createElement("div");
-        fileItem.className = "attachment-item mb-3 p-3 border rounded bg-light";
-
-        const preview = isImage
-          ? `<img src="${url}" alt="${filename}" class="img-fluid rounded shadow-sm" style="max-height: 200px;">`
-          : isPDF
-            ? `<embed src="${url}" type="application/pdf" width="100%" height="200px" class="rounded shadow-sm">`
-            : "";
-
-        fileItem.innerHTML = `
-          <div class="row align-items-center">
-            <div class="col-md-4 text-center mb-3 mb-md-0">${preview}</div>
-            <div class="col-md-8">
-              <div class="d-flex flex-column justify-content-between h-100">
-                <div class="mb-2">
-                  <i class="${getFileIcon(ext)} text-primary me-2"></i>
-                  <strong>${filename}</strong>
-                </div>
-                <div>
-                  <a href="#" onclick="forceDownload('${url}', '${filename}'); return false;" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-download me-1"></i> Descargar
-                  </a>
+          fileItem.innerHTML = `
+            <div class="row align-items-center">
+              <div class="col-md-4 text-center mb-3 mb-md-0">${preview}</div>
+              <div class="col-md-8">
+                <div class="d-flex flex-column justify-content-between h-100">
+                  <div class="mb-2">
+                    <i class="${getFileIcon(ext)} text-primary me-2"></i>
+                    <strong>${filename}</strong>
+                  </div>
+                  <div>
+                    <a href="#" onclick="forceDownload('${url}', '${filename}'); return false;" class="btn btn-outline-primary btn-sm">
+                      <i class="fas fa-download me-1"></i> Descargar
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        `;
+          `;
 
-        filesList.appendChild(fileItem);
+          filesList.appendChild(fileItem);
+        });
+      } catch (err) {
+        console.error("Error al cargar archivos:", err);
+        filesList.innerHTML = `
+          <div class="alert alert-danger mb-0">
+            <i class="fas fa-exclamation-circle me-2"></i>Error al cargar los archivos
+          </div>`;
+      }
+    })();
+
+    // Feedback y comentarios
+    const feedbackSection = document.getElementById("viewFeedbackSection");
+    if (deliverable.feedback) {
+      document.getElementById("viewFeedback").textContent = deliverable.feedback;
+      feedbackSection.style.display = "block";
+    } else {
+      feedbackSection.style.display = "none";
+    }
+
+    const commentsContainer = document.getElementById("viewDeliverableComments");
+    commentsContainer.innerHTML = "";
+
+    if (deliverable.comments?.length > 0) {
+      deliverable.comments.forEach(comment => {
+        const commentElement = document.createElement("div");
+        commentElement.className = "comment";
+        commentElement.innerHTML = `
+          <div class="comment-avatar">${comment.user.avatar}</div>
+          <div class="comment-content">
+            <div class="comment-header">
+              <span class="comment-author">${comment.user.name}</span>
+              <span class="comment-date">${formatDateTime(comment.date)}</span>
+            </div>
+            <p class="comment-text">${comment.text}</p>
+          </div>`;
+        commentsContainer.appendChild(commentElement);
       });
-    } catch (err) {
-      console.error("Error al cargar archivos:", err);
-      filesList.innerHTML = `
-        <div class="alert alert-danger mb-0">
-          <i class="fas fa-exclamation-circle me-2"></i>Error al cargar los archivos
-        </div>`;
+    } else {
+      commentsContainer.innerHTML = '<p class="text-center text-muted">No hay comentarios</p>';
     }
-  })();
 
-  // Feedback y comentarios
-  const feedbackSection = document.getElementById("viewFeedbackSection");
-  if (deliverable.feedback) {
-    document.getElementById("viewFeedback").textContent = deliverable.feedback;
-    feedbackSection.style.display = "block";
-  } else {
-    feedbackSection.style.display = "none";
-  }
+    // Configurar botones de acción
+    document.getElementById("approveDeliverableBtn").onclick = async () => {
+      const deliverableId = document.getElementById('viewDeliverableId').textContent;
+      const ticketId = deliverableId.replace('DEL-', '');
 
-  const commentsContainer = document.getElementById("viewDeliverableComments");
-  commentsContainer.innerHTML = "";
+      try {
+          const { error } = await supabaseClient
+              .from('ticket')
+              .update({ 
+                  estado: 'approved',
+                  fecha_limite: new Date().toISOString()
+              })
+              .eq('id_ticket', ticketId);
 
-  if (deliverable.comments?.length > 0) {
-    deliverable.comments.forEach(comment => {
-      const commentElement = document.createElement("div");
-      commentElement.className = "comment";
-      commentElement.innerHTML = `
-        <div class="comment-avatar">${comment.user.avatar}</div>
-        <div class="comment-content">
-          <div class="comment-header">
-            <span class="comment-author">${comment.user.name}</span>
-            <span class="comment-date">${formatDateTime(comment.date)}</span>
-          </div>
-          <p class="comment-text">${comment.text}</p>
-        </div>`;
-      commentsContainer.appendChild(commentElement);
-    });
-  } else {
-    commentsContainer.innerHTML = '<p class="text-center text-muted">No hay comentarios</p>';
-  }
+          if (error) throw error;
 
-  // Botón Aprobar
-  document.getElementById("approveDeliverableBtn").onclick = async () => {
-  const deliverableId = document.getElementById('viewDeliverableId').textContent;
-    const ticketId = deliverableId.replace('DEL-', ''); // Extract numeric ID
+          viewDeliverableModal.hide();
+          
+          const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+          if (deliverable) {
+              deliverable.status = 'approved';
+              deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+          }
 
-    try {
-        // Update ticket status in database
-        const { error } = await supabaseClient
-            .from('ticket')
-            .update({ 
-                estado: 'approved',
-                fecha_limite: new Date().toISOString() // Set completion date
-            })
-            .eq('id_ticket', ticketId);
+          renderDeliverables();
+          showAlert('Entregable aprobado con éxito', 'success');
 
-        if (error) throw error;
+      } catch (err) {
+          console.error('Error al aprobar entregable:', err);
+          showAlert('Error al aprobar el entregable', 'danger');
+      }
+    };
 
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('viewDeliverableModal'));
-        modal.hide();
+    document.getElementById("confirmRejectBtn").onclick = async () => {
+      const comment = "OBSERVACIONES HECHAS POR EL J.O:  " + document.getElementById("rejectComment").value.trim();
+      if (!comment) {
+        alert("Ingresa un motivo del rechazo.");
+        return;
+      }
+      
+      const deliverableId = document.getElementById('viewDeliverableId').textContent;
+      const ticketId = deliverableId.replace('DEL-', '');
 
-        // Update UI
-        const deliverable = mockDeliverables.find(d => d.id === deliverableId);
-        if (deliverable) {
-            deliverable.status = 'approved';
-            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
-        }
+      try {
+          const { error } = await supabaseClient
+              .from('ticket')
+              .update({ 
+                  estado: 'in-progress',
+                  comentarios: comment,
+                  fecha_limite: new Date().toISOString()
+              })
+              .eq('id_ticket', ticketId);
 
-        // Refresh deliverables list
-        renderDeliverables();
+          if (error) throw error;
 
-        // Show success message
-        showAlert('Entregable aprobado con éxito', 'success');
+          rejectModal.hide();
+          viewDeliverableModal.hide();
 
-    } catch (err) {
-        console.error('Error al aprobar entregable:', err);
-        showAlert('Error al aprobar el entregable', 'danger');
-    }
+          const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+          if (deliverable) {
+              deliverable.status = 'rejected';
+              deliverable.reviewed_date = new Date().toISOString().split('T')[0];
+          }
+
+          renderDeliverables();
+          showAlert('Entregable rechazado con éxito', 'success');
+
+      } catch (err) {
+          console.error('Error al rechazar entregable:', err);
+          showAlert('Error al rechazar el entregable', 'danger');
+      }
+    };
+
+    viewDeliverableModal.show();
   };
 
-  // Botón Rechazar
-  document.getElementById("confirmRejectBtn").onclick = async () => {
-    const comment = "OBSERVACIONES HECHAS POR EL J.O:  " + document.getElementById("rejectComment").value.trim();
-    if (!comment) {
-      alert("Ingresa un motivo del rechazo.");
-      return;
-    }
-    
-    const deliverableId = document.getElementById('viewDeliverableId').textContent;
-    const ticketId = deliverableId.replace('DEL-', ''); // Extract numeric ID
-
-    try {
-        // Update ticket status in database
-        const { error } = await supabaseClient
-            .from('ticket')
-            .update({ 
-                estado: 'in-progress',
-                comentarios: comment,
-                fecha_limite: new Date().toISOString() // Set completion date
-            })
-            .eq('id_ticket', ticketId);
-
-        if (error) throw error;
-
-        // Close modal
-        const rejectModal = bootstrap.Modal.getInstance(document.getElementById('rejectModal'));
-        if (rejectModal) rejectModal.hide();
-
-
-        // Update UI
-        const deliverable = mockDeliverables.find(d => d.id === deliverableId);
-        if (deliverable) {
-            deliverable.status = 'rejected';
-            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
-        }
-
-        // Refresh deliverables list
-        renderDeliverables();
-
-        // Show success message
-        showAlert('Entregable rechazado con éxito', 'success');
-
-    } catch (err) {
-        console.error('Error al aprobar entregable:', err);
-        showAlert('Error al aprobar el entregable', 'danger');
-    }
-    
-  };
-
-  const viewDeliverableModal = new bootstrap.Modal(document.getElementById("viewDeliverableModal"));
-  viewDeliverableModal.show();
-  
-    viewDeliverableModal.hide();
-            
-        deliverable = mockDeliverables.find(d => d.id === deliverableId);
-        if (deliverable) {
-            deliverable.status = 'approved';
-            deliverable.reviewed_date = new Date().toISOString().split('T')[0];
-        }
-
-        // Refresh deliverables list
-        renderDeliverables();
-
-  
-};
-
-
-
-  async function submitReview(deliverableId) {
-    const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
+  window.reviewDeliverable = function (deliverableId) {
+    const deliverable = mockDeliverables.find(d => d.id === deliverableId);
     if (!deliverable) return;
-
-    const decision = document.querySelector(
-      'input[name="reviewDecision"]:checked'
-    ).value;
-    const feedback = document.getElementById("reviewFeedback").value;
-
-    if (!feedback.trim()) {
-      showAlert("Por favor proporcione feedback para el creativo", "warning");
-      return;
-    }
-
-    deliverable.status = decision === "approve" ? "approved" : "rejected";
-    const task = mockDeliverables[deliverableId];
-
-    const ticketId = deliverableId.replace(/[^\d]/g, "");
-
-    const { data, error } = await supabaseClient
-      .from('ticket')
-      .update({ estado: deliverable.status })
-      .eq('id_ticket', ticketId); 
-
-    const resultado = document.getElementById("resultado");
-
-    if (error) {
-      console.error("❌ Error al actualizar:", error);
-      if (resultado) {
-        resultado.textContent = "Error: " + error.message;
-      }
-      return;
-    }
-    deliverable.reviewed_date = new Date().toISOString().split("T")[0];
-    deliverable.feedback = feedback;
-
-    if (!deliverable.comments) {
-      deliverable.comments = [];
-    }
-
-    deliverable.comments.push({
-      id: Date.now(),
-      user: { id: 1, name: "Ana Martínez", avatar: "AM" },
-      date: new Date().toISOString(),
-      text: `${
-        decision === "approve" ? "Entregable aprobado" : "Entregable rechazado"
-      }: ${feedback}`,
-    });
-
-    const orderId = deliverable.order_id;
-    const order = window.mockOrders
-      ? window.mockOrders.find((o) => o.id === orderId)
-      : null;
-
-    if (order) {
-      order.status = decision === "approve" ? "approved" : "rejected";
-
-      if (!order.timeline) {
-        order.timeline = [];
-      }
-
-      order.timeline.push({
-        date: new Date().toISOString(),
-        action: "status_change",
-        user: "Ana Martínez",
-        from_status: "review",
-        to_status: decision === "approve" ? "approved" : "rejected",
-      });
-    }
-
-    reviewModal.hide();
-    renderDeliverables();
-
-    showAlert(
-      `Entregable ${
-        decision === "approve" ? "aprobado" : "rechazado"
-      } con éxito`,
-      "success"
-    );
-  }
+    
+    // Primero mostramos la vista normal
+    viewDeliverable(deliverableId);
+    
+    // Luego abrimos el modal de revisión
+    // (aquí puedes implementar la lógica específica para el modal de revisión si es diferente)
+  };
 
   function getFileIcon(fileType) {
     const iconMap = {
@@ -598,9 +463,13 @@ window.reviewDeliverable = function (deliverableId) {
     return statusMap[status] || status;
   }
 
-  window.downloadFile = function (fileName) {
-    showAlert(`Descargando archivo: ${fileName}`, "info");
-    return false;
+  window.forceDownload = function (url, fileName) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   function showAlert(message, type = "success") {
@@ -618,7 +487,6 @@ window.reviewDeliverable = function (deliverableId) {
     setTimeout(() => alert.remove(), 5000);
   }
 
-  // AGREGAR al final
   loadRealDeliverables().then(() => {
     renderDeliverables();
   });
