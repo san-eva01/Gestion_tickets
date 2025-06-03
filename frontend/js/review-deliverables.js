@@ -23,10 +23,8 @@ document.addEventListener("DOMContentLoaded", function () {
     setupEventListeners();
   }
 
-  // AGREGAR ESTA FUNCIÓN
   async function loadRealDeliverables() {
     try {
-      // Obtener tickets que están en revisión o completados
       const { data: ticketsData, error: ticketsError } = await supabaseClient
         .from("ticket")
         .select(
@@ -41,7 +39,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (ticketsError) throw ticketsError;
 
-      // Convertir tickets a formato de entregables
       realDeliverables = ticketsData.map((ticket) => ({
         id: `DEL-${ticket.id_ticket}`,
         order_id: `TKT-${ticket.id_ticket}`,
@@ -64,9 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
         feedback: ticket.estado === "approved" ? "Entregable aprobado" : null,
       }));
 
-      // Actualizar variable global
       mockDeliverables = realDeliverables;
-
       console.log("Entregables cargados:", mockDeliverables.length);
     } catch (error) {
       console.error("Error al cargar entregables:", error);
@@ -105,6 +100,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     deliverablesToRender.forEach((deliverable) => {
       const row = document.createElement("tr");
+      row.className = "clickable-row";
+      row.setAttribute("data-id", deliverable.id);
       row.innerHTML = `
                 <td>${deliverable.id}</td>
                 <td>${deliverable.title}</td>
@@ -127,13 +124,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="action-buttons">
                         <button class="btn-icon view" onclick="viewDeliverable('${
                           deliverable.id
-                        }')">
+                        }', event)">
                             <i class="fas fa-eye"></i>
                         </button>
                         ${
                           deliverable.status === "pending"
                             ? `
-                            <button class="btn-icon edit" onclick="reviewDeliverable('${deliverable.id}')">
+                            <button class="btn-icon edit" onclick="reviewDeliverable('${deliverable.id}', event)">
                                 <i class="fas fa-clipboard-check"></i>
                             </button>
                         `
@@ -143,6 +140,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 </td>
             `;
       deliverableTableBody.appendChild(row);
+    });
+
+    // Agregar evento click a las filas
+    document.querySelectorAll(".clickable-row").forEach(row => {
+      row.addEventListener("click", function(e) {
+        // Verificar si el click fue en un botón de acción
+        if (!e.target.closest(".action-buttons")) {
+          const deliverableId = this.getAttribute("data-id");
+          viewDeliverable(deliverableId);
+        }
+      });
     });
   }
 
@@ -169,7 +177,11 @@ document.addEventListener("DOMContentLoaded", function () {
     renderDeliverables(filtered);
   }
 
-  window.viewDeliverable = function (deliverableId) {
+  window.viewDeliverable = function (deliverableId, event = null) {
+    if (event) {
+      event.stopPropagation();
+    }
+    
     const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
     if (!deliverable) return;
 
@@ -263,7 +275,11 @@ document.addEventListener("DOMContentLoaded", function () {
     viewDeliverableModal.show();
   };
 
-  window.reviewDeliverable = function (deliverableId) {
+  window.reviewDeliverable = function (deliverableId, event = null) {
+    if (event) {
+      event.stopPropagation();
+    }
+    
     const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
     if (!deliverable) return;
 
@@ -454,7 +470,6 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => alert.remove(), 5000);
   }
 
-  // AGREGAR al final
   loadRealDeliverables().then(() => {
     renderDeliverables();
   });
