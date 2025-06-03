@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
         id: `DEL-${ticket.id_ticket}`,
         order_id: `TKT-${ticket.id_ticket}`,
         title: ticket.titulo,
+        description: ticket.descripcion || "No hay descripción disponible", // Añadido campo descripción
         type: ticket.categoria,
         creative: {
           id: ticket.id_usuario_asignado,
@@ -205,6 +206,11 @@ document.addEventListener("DOMContentLoaded", function () {
       deliverable.client;
     document.getElementById("viewDeliverableSubmitted").textContent =
       formatDate(deliverable.submitted_date);
+
+ // Mostrar la descripción del ticket
+    const descriptionElement = document.getElementById("viewDeliverableDescription");
+    descriptionElement.innerHTML = deliverable.description || "<p class='text-muted'>No hay descripción disponible</p>";
+
 
     if (deliverable.reviewed_date) {
       document.getElementById("viewDeliverableReviewed").textContent =
@@ -473,4 +479,9 @@ document.addEventListener("DOMContentLoaded", function () {
   loadRealDeliverables().then(() => {
     renderDeliverables();
   });
+
+
+
+
+  
 });
