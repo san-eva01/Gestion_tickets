@@ -27,6 +27,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 10;
 }
 
 /* Login Container */
@@ -40,6 +41,7 @@ body {
     overflow: hidden;
     box-shadow: 0 10px 30px var(--shadow-color);
     background: white;
+    z-index: 10;
 }
 
 /* Login Card */
