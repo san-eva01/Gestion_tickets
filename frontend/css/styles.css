@@ -312,6 +312,31 @@ body {
     color: var(--gray-800);
 }
 
+.btn-success{
+    background-color: #42d865; 
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+.btn-rechazar{
+    background-color: #f91818; 
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+
 .btn-link {
     color: var(--primary-color);
     font-weight: 500;
@@ -1071,7 +1096,8 @@ body {
 
 .btn-secondary,
 .btn-primary,
-.btn-danger {
+.btn-danger
+.btn-success {
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     border: none;
@@ -1085,10 +1111,10 @@ body {
     color: var(--gray-700);
 }
 
-.btn-primary {
+.btn-primary{
     background-color: var(--primary-color);
     color: white;
-    box-shadow: 0 2px 5px var(--shadow-color);
+    
 }
 
 .btn-danger {
@@ -1098,7 +1124,7 @@ body {
 
 .btn-secondary:hover,
 .btn-primary:hover,
-.btn-danger:hover {
+.btn-danger:hover{
     transform: translateY(-2px);
     box-shadow: 0 4px 8px var(--shadow-color);
 }
@@ -1107,7 +1133,7 @@ body {
     background-color: var(--gray-300);
 }
 
-.btn-primary:hover {
+.btn-primary:hover{
     background-color: var(--secondary-color);
 }
 

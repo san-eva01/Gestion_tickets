@@ -71,6 +71,13 @@ document.addEventListener('DOMContentLoaded', function() {
             roleBadgeElement.textContent = userInfo.role;
         }
 
+        // main.js
+        window.currentUser = {
+        name: userInfo.name,
+        role: userInfo.role
+        };
+
+
 
         handleRoleBasedNavigation(userInfo);
     };

@@ -1235,7 +1235,6 @@ document.addEventListener("DOMContentLoaded", function () {
           ticket.id_cliente_entregable || "";
         document.getElementById("orderDeadline").value = ticket.fecha_limite;
         document.getElementById("orderDescription").value = ticket.descripcion;
-
         document.getElementById("modalTitle").textContent = "Editar Ticket";
       }
     } else {
