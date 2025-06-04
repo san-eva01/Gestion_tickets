@@ -300,14 +300,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     badge.innerHTML = `
-        <div class="badge-content">
-            <i class="${badgeIcon}"></i>
-            <span>${badgeText}</span>
-            <button class="clear-filter-btn" onclick="clearDashboardFilter()" title="Limpiar filtro">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
+      <div class="badge-content">
+          <i class="${badgeIcon}"></i>
+          <span>${badgeText}</span>
+          <button class="clear-filter-btn" type="button" title="Limpiar filtro">
+              <i class="fas fa-times"></i>
+          </button>
+      </div>
+  `;
+
+    // IMPORTANTE: Agregar el event listener directamente al botón
+    const clearBtn = badge.querySelector(".clear-filter-btn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearDashboardFilter();
+      });
+    }
 
     badge.style.display = "flex";
   }
@@ -508,6 +518,50 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     showOrderModal(ticketId);
+  };
+
+  window.clearDashboardFilter = function () {
+    // Limpiar parámetros de URL
+    const url = new URL(window.location);
+    url.searchParams.delete("status");
+    window.history.replaceState({}, "", url);
+
+    // Ocultar badge
+    const badge = document.getElementById("activeFilterBadge");
+    if (badge) {
+      badge.style.display = "none";
+    }
+
+    // Limpiar filtros
+    const statusFilter = document.getElementById("statusFilter");
+    if (statusFilter) {
+      // Remover opción de completados si existe
+      const completedOption = statusFilter.querySelector(
+        'option[value="completed"]'
+      );
+      if (completedOption) {
+        completedOption.remove();
+      }
+      
+      // Resetear el filtro a "Todos los estados"
+      statusFilter.value = "";
+    }
+
+    // Limpiar otros filtros también
+    const typeFilter = document.getElementById("typeFilter");
+    const searchInput = document.querySelector(".search-input");
+    const dateFromFilter = document.getElementById("dateFrom");
+    const dateToFilter = document.getElementById("dateTo");
+
+    if (typeFilter) typeFilter.value = "";
+    if (searchInput) searchInput.value = "";
+    if (dateFromFilter) dateFromFilter.value = "";
+    if (dateToFilter) dateToFilter.value = "";
+
+    // Recargar todos los tickets sin filtros
+    fetchTickets(1, itemsPerPage);
+
+    showAlert("Filtros eliminados", "info");
   };
 
   window.deleteTicket = function (ticketId) {
