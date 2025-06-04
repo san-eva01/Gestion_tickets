@@ -184,13 +184,19 @@
                   id="viewDeliverableComments"
                 ></div>
               </div>
+              <div class="add-comment mt-3">
+                <label for="newComment" class="form-label">Agregar comentario:</label>
+                <textarea id="newComment" class="form-control" rows="3"></textarea>
+                <button class="btn btn-primary mt-2" onclick="addComment()">Guardar comentario</button>
+            </div>
+
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             <button type="button" class="btn-success" id="approveDeliverableBtn" onclick="approveDeliverable()">
-                <i class="fas fa-check"></i> Aprobar
-<button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Rechazar</button>
+                <i class="fas fa-check"></i> Aprobar </button>
+            <button class="btn-rechazar" data-bs-toggle="modal" data-bs-target="#rejectModal" >Rechazar</button>
 
         </div>
 

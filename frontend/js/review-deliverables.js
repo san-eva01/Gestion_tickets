@@ -84,6 +84,8 @@ document.addEventListener("DOMContentLoaded", function () {
       .toUpperCase();
   }
 
+  
+
   function setupEventListeners() {
     searchInput.addEventListener("input", filterDeliverables);
     statusFilter.addEventListener("change", filterDeliverables);
@@ -285,27 +287,61 @@ document.addEventListener("DOMContentLoaded", function () {
       feedbackSection.style.display = "none";
     }
 
-    const commentsContainer = document.getElementById("viewDeliverableComments");
-    commentsContainer.innerHTML = "";
+const commentsContainer = document.getElementById("viewDeliverableComments");
+commentsContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando comentarios...</div>';
 
-    if (deliverable.comments?.length > 0) {
-      deliverable.comments.forEach(comment => {
-        const commentElement = document.createElement("div");
-        commentElement.className = "comment";
-        commentElement.innerHTML = `
-          <div class="comment-avatar">${comment.user.avatar}</div>
-          <div class="comment-content">
-            <div class="comment-header">
-              <span class="comment-author">${comment.user.name}</span>
-              <span class="comment-date">${formatDateTime(comment.date)}</span>
-            </div>
-            <p class="comment-text">${comment.text}</p>
-          </div>`;
-        commentsContainer.appendChild(commentElement);
-      });
-    } else {
+(async () => {
+  try {
+    const { data, error } = await supabaseClient
+      .from("ticket")
+      .select("comentarios")
+      .eq("id_ticket", ticketId)
+      .single();
+
+    if (error) throw error;
+
+    const comentariosTexto = data?.comentarios || "";
+
+    if (!comentariosTexto.trim()) {
       commentsContainer.innerHTML = '<p class="text-center text-muted">No hay comentarios</p>';
+      return;
     }
+
+    const comentarios = comentariosTexto.trim().split("\n").filter(Boolean);
+
+    commentsContainer.innerHTML = "";
+comentarios.forEach(linea => {
+  const match = linea.match(/^\[(.+?)\]\s*(.+?):\s*(.+)$/);
+  const commentElement = document.createElement("div");
+  commentElement.className = "comment";
+
+  if (match) {
+    const [, fecha, autor, texto] = match;
+    commentElement.innerHTML = `
+      <div class="comment-content">
+        <div class="comment-header">
+          <span class="comment-author">${autor}</span>
+          <span class="comment-date">${fecha}</span>
+        </div>
+        <p class="comment-text">${texto}</p>
+      </div>`;
+  } else {
+    // Mostrar comentarios sin formato
+    commentElement.innerHTML = `
+      <div class="comment-content">
+        <p class="comment-text">${linea}</p>
+      </div>`;
+  }
+
+  commentsContainer.appendChild(commentElement);
+});
+
+
+  } catch (err) {
+    console.error("Error al cargar comentarios:", err);
+    commentsContainer.innerHTML = '<p class="text-danger text-center">Error al cargar los comentarios</p>';
+  }
+})();
 
     // Configurar botones de acción
     document.getElementById("approveDeliverableBtn").onclick = async () => {
@@ -341,47 +377,119 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     document.getElementById("confirmRejectBtn").onclick = async () => {
-      const comment = "OBSERVACIONES HECHAS POR EL J.O:  " + document.getElementById("rejectComment").value.trim();
-      if (!comment) {
+      const newComment = document.getElementById("rejectComment").value.trim();
+      if (!newComment) {
         alert("Ingresa un motivo del rechazo.");
         return;
       }
       
       const deliverableId = document.getElementById('viewDeliverableId').textContent;
       const ticketId = deliverableId.replace('DEL-', '');
-
+        
       try {
-          const { error } = await supabaseClient
-              .from('ticket')
-              .update({ 
-                  estado: 'in-progress',
-                  comentarios: comment,
-                  fecha_limite: new Date().toISOString()
-              })
-              .eq('id_ticket', ticketId);
+    const { data, error: fetchError } = await supabaseClient
+      .from("ticket")
+      .select("comentarios")
+      .eq("id_ticket", ticketId)
+      .single();
 
-          if (error) throw error;
+    if (fetchError) throw fetchError;
 
-          rejectModal.hide();
-          viewDeliverableModal.hide();
+    const currentComments = data?.comentarios || "";
+    const userName = window.currentUser?.name || "Usuario desconocido";
+    const datetime = new Date().toLocaleString();
+    const formattedComment = `\n[${datetime}] ${userName}: ${newComment}`;
+    const updatedComments = currentComments + formattedComment;
 
-          const deliverable = mockDeliverables.find(d => d.id === deliverableId);
-          if (deliverable) {
+    const { error: updateError } = await supabaseClient
+      .from("ticket")
+      .update({ estado: 'in-progress', comentarios: updatedComments })
+      .eq("id_ticket", ticketId);
+
+    if (updateError) throw updateError;
+
+    rejectModal.hide();
+    viewDeliverableModal.hide();
+
+    const deliverable = mockDeliverables.find(d => d.id === deliverableId);
+      if (deliverable) {
               deliverable.status = 'rejected';
               deliverable.reviewed_date = new Date().toISOString().split('T')[0];
-          }
-
-          renderDeliverables();
-          showAlert('Entregable rechazado con éxito', 'success');
-
-      } catch (err) {
-          console.error('Error al rechazar entregable:', err);
-          showAlert('Error al rechazar el entregable', 'danger');
       }
+
+      renderDeliverables();
+    showAlert('Entregable rechazado con éxito', 'success');
+
+
+
+  } catch (err) {
+    console.error("Error al guardar comentario:", err);
+    showAlert("Hubo un error al guardar el comentario", "danger");
+  }
+
+      
     };
 
     viewDeliverableModal.show();
   };
+
+
+
+  // Fuera de viewDeliverable
+window.addComment = async function () {
+  const ticketId = document.getElementById('viewDeliverableId').textContent.replace("DEL-", "");
+  const newComment = document.getElementById('newComment').value.trim();
+
+  if (!newComment) {
+    alert("El comentario no puede estar vacío.");
+    return;
+  }
+
+  try {
+    const { data, error: fetchError } = await supabaseClient
+      .from("ticket")
+      .select("comentarios")
+      .eq("id_ticket", ticketId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentComments = data?.comentarios || "";
+    const userName = window.currentUser?.name || "Usuario desconocido";
+    const datetime = new Date().toLocaleString();
+    const formattedComment = `\n[${datetime}] ${userName}: ${newComment}`;
+    const updatedComments = currentComments + formattedComment;
+
+    const { error: updateError } = await supabaseClient
+      .from("ticket")
+      .update({ comentarios: updatedComments })
+      .eq("id_ticket", ticketId);
+
+    if (updateError) throw updateError;
+
+    // Añadir nuevo comentario visualmente
+    const commentsContainer = document.getElementById("viewDeliverableComments");
+    const newCommentElement = document.createElement("div");
+    newCommentElement.className = "comment";
+    newCommentElement.innerHTML = `
+      <div class="comment-content">
+        <div class="comment-header">
+          <span class="comment-author">${userName}</span>
+          <span class="comment-date">${datetime}</span>
+        </div>
+        <p class="comment-text">${newComment}</p>
+      </div>`;
+    commentsContainer.appendChild(newCommentElement);
+
+    document.getElementById('newComment').value = "";
+    showAlert("Comentario guardado correctamente", "success");
+
+  } catch (err) {
+    console.error("Error al guardar comentario:", err);
+    showAlert("Hubo un error al guardar el comentario", "danger");
+  }
+};
+
 
   window.reviewDeliverable = function (deliverableId) {
     const deliverable = mockDeliverables.find(d => d.id === deliverableId);

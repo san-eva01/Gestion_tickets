@@ -464,246 +464,49 @@ document.addEventListener("DOMContentLoaded", function () {
     showOrderModal(ticketId);
   };
 
-  // En work-orders.js, reemplaza la función clearDashboardFilter existente con esta versión corregida:
-
-  // Función para limpiar el filtro del dashboard (CORREGIDA COMPLETAMENTE)
-  // En work-orders.js, reemplaza la función clearDashboardFilter existente con esta versión corregida:
-
-  // Función para limpiar el filtro del dashboard (SOLUCIÓN DEFINITIVA)
   window.clearDashboardFilter = function () {
-    console.log("🔍 Iniciando limpieza de filtros...");
-
-    // 1. Limpiar parámetros de URL
+    // Limpiar parámetros de URL
     const url = new URL(window.location);
     url.searchParams.delete("status");
     window.history.replaceState({}, "", url);
 
-    // 2. Ocultar badge
+    // Ocultar badge
     const badge = document.getElementById("activeFilterBadge");
     if (badge) {
       badge.style.display = "none";
-      console.log("✅ Badge ocultado");
     }
 
-    // 3. Resetear TODOS los filtros
+    // Limpiar filtros
     const statusFilter = document.getElementById("statusFilter");
-    const typeFilter = document.getElementById("typeFilter");
-    const searchInput = document.querySelector(".search-input");
-    const dateFromFilter = document.getElementById("dateFrom");
-    const dateToFilter = document.getElementById("dateTo");
-
     if (statusFilter) {
+      // Remover opción de completados si existe
       const completedOption = statusFilter.querySelector(
         'option[value="completed"]'
       );
       if (completedOption) {
         completedOption.remove();
       }
-      statusFilter.selectedIndex = 0;
+
+      // Resetear el filtro a "Todos los estados"
       statusFilter.value = "";
-      console.log("✅ Filtro de estado reseteado");
     }
 
-    if (typeFilter) {
-      typeFilter.selectedIndex = 0;
-      typeFilter.value = "";
-    }
+    // Limpiar otros filtros también
+    const typeFilter = document.getElementById("typeFilter");
+    const searchInput = document.querySelector(".search-input");
+    const dateFromFilter = document.getElementById("dateFrom");
+    const dateToFilter = document.getElementById("dateTo");
+
+    if (typeFilter) typeFilter.value = "";
     if (searchInput) searchInput.value = "";
     if (dateFromFilter) dateFromFilter.value = "";
     if (dateToFilter) dateToFilter.value = "";
 
-    // 4. FORZAR recarga sin filtros
-    currentPage = 1;
+    // Recargar todos los tickets sin filtros
+    fetchTickets(1, itemsPerPage);
 
-    console.log("🔄 Recargando todos los tickets...");
-
-    // Método principal: recargar desde BD
-    if (typeof fetchTickets === "function") {
-      fetchTickets(1, itemsPerPage);
-    } else {
-      // Método de respaldo: renderizar todos los tickets actuales
-      console.log("📋 Usando método de respaldo...");
-      if (typeof tickets !== "undefined" && tickets.length > 0) {
-        if (typeof renderOrders === "function") {
-          renderOrders(tickets);
-        }
-      } else {
-        // Último recurso: recargar página
-        console.log("🔄 Recargando página...");
-        window.location.reload();
-      }
-    }
-
-    showAlert("Filtros eliminados - Mostrando todos los tickets", "success");
-    console.log("✅ Limpieza completada");
+    showAlert("Filtros eliminados", "info");
   };
-
-  // También actualiza la función showActiveFilterBadge para asegurar que el evento click funcione:
-  function showActiveFilterBadge(statusParam) {
-    // Crear badge si no existe
-    let badge = document.getElementById("activeFilterBadge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.id = "activeFilterBadge";
-      badge.className = "active-filter-badge";
-
-      const filterControls = document.querySelector(".filter-controls");
-      if (filterControls) {
-        filterControls.insertBefore(badge, filterControls.firstChild);
-      }
-    }
-
-    // Configurar contenido del badge
-    let badgeText = "";
-    let badgeIcon = "fas fa-filter";
-
-    switch (statusParam) {
-      case "in-progress":
-        badgeText = "Filtro: En Proceso";
-        break;
-      case "review":
-        badgeText = "Filtro: En Revisión";
-        break;
-      case "completed":
-        badgeText = "Filtro: Completados";
-        break;
-      default:
-        badgeText = "Filtro aplicado desde Dashboard";
-    }
-
-    badge.innerHTML = `
-      <div class="badge-content">
-          <i class="${badgeIcon}"></i>
-          <span>${badgeText}</span>
-          <button class="clear-filter-btn" type="button" title="Limpiar filtro">
-              <i class="fas fa-times"></i>
-          </button>
-      </div>
-  `;
-
-    // IMPORTANTE: Agregar el event listener directamente al botón
-    const clearBtn = badge.querySelector(".clear-filter-btn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        clearDashboardFilter();
-      });
-    }
-
-    badge.style.display = "flex";
-  }
-
-  // También actualiza la función showActiveFilterBadge para asegurar que el evento click funcione:
-  function showActiveFilterBadge(statusParam) {
-    // Crear badge si no existe
-    let badge = document.getElementById("activeFilterBadge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.id = "activeFilterBadge";
-      badge.className = "active-filter-badge";
-
-      const filterControls = document.querySelector(".filter-controls");
-      if (filterControls) {
-        filterControls.insertBefore(badge, filterControls.firstChild);
-      }
-    }
-
-    // Configurar contenido del badge
-    let badgeText = "";
-    let badgeIcon = "fas fa-filter";
-
-    switch (statusParam) {
-      case "in-progress":
-        badgeText = "Filtro: En Proceso";
-        break;
-      case "review":
-        badgeText = "Filtro: En Revisión";
-        break;
-      case "completed":
-        badgeText = "Filtro: Completados";
-        break;
-      default:
-        badgeText = "Filtro aplicado desde Dashboard";
-    }
-
-    badge.innerHTML = `
-      <div class="badge-content">
-          <i class="${badgeIcon}"></i>
-          <span>${badgeText}</span>
-          <button class="clear-filter-btn" type="button" title="Limpiar filtro">
-              <i class="fas fa-times"></i>
-          </button>
-      </div>
-  `;
-
-    // IMPORTANTE: Agregar el event listener directamente al botón
-    const clearBtn = badge.querySelector(".clear-filter-btn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        clearDashboardFilter();
-      });
-    }
-
-    badge.style.display = "flex";
-  }
-
-  function showActiveFilterBadge(statusParam) {
-    // Crear badge si no existe
-    let badge = document.getElementById("activeFilterBadge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.id = "activeFilterBadge";
-      badge.className = "active-filter-badge";
-
-      const filterControls = document.querySelector(".filter-controls");
-      if (filterControls) {
-        filterControls.insertBefore(badge, filterControls.firstChild);
-      }
-    }
-
-    // Configurar contenido del badge
-    let badgeText = "";
-    let badgeIcon = "fas fa-filter";
-
-    switch (statusParam) {
-      case "in-progress":
-        badgeText = "Filtro: En Proceso";
-        break;
-      case "review":
-        badgeText = "Filtro: En Revisión";
-        break;
-      case "completed":
-        badgeText = "Filtro: Completados";
-        break;
-      default:
-        badgeText = "Filtro aplicado desde Dashboard";
-    }
-
-    badge.innerHTML = `
-      <div class="badge-content">
-          <i class="${badgeIcon}"></i>
-          <span>${badgeText}</span>
-          <button class="clear-filter-btn" type="button" title="Limpiar filtro">
-              <i class="fas fa-times"></i>
-          </button>
-      </div>
-  `;
-
-    // IMPORTANTE: Agregar el event listener directamente al botón
-    const clearBtn = badge.querySelector(".clear-filter-btn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        clearDashboardFilter();
-      });
-    }
-
-    badge.style.display = "flex";
-  }
 
   // También actualiza la función showActiveFilterBadge para asegurar que el evento click funcione:
   function showActiveFilterBadge(statusParam) {
@@ -1235,7 +1038,6 @@ document.addEventListener("DOMContentLoaded", function () {
           ticket.id_cliente_entregable || "";
         document.getElementById("orderDeadline").value = ticket.fecha_limite;
         document.getElementById("orderDescription").value = ticket.descripcion;
-
         document.getElementById("modalTitle").textContent = "Editar Ticket";
       }
     } else {
@@ -1536,8 +1338,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function filterOrders() {
-    console.log("🔍 Ejecutando filterOrders...");
-
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
     const statusValue = statusFilter ? statusFilter.value : "";
     const typeValue = typeFilter ? typeFilter.value : "";
@@ -1548,87 +1348,21 @@ document.addEventListener("DOMContentLoaded", function () {
     const dateTo =
       dateToFilter && dateToFilter.value ? new Date(dateToFilter.value) : null;
 
-    console.log("📋 Filtros aplicados:", {
-      searchTerm,
-      statusValue,
-      typeValue,
-      dateFrom,
-      dateTo,
-      totalTickets: tickets ? tickets.length : 0,
-    });
-
-    // VERIFICAR que la variable tickets existe y tiene datos
-    if (!tickets || !Array.isArray(tickets)) {
-      console.log("❌ Variable tickets no disponible o no es array:", tickets);
-      // Si no hay tickets, intentar recargar
-      if (typeof fetchTickets === "function") {
-        console.log("🔄 Recargando tickets desde la base de datos...");
-        fetchTickets(1, itemsPerPage);
-      }
-      return;
-    }
-
-    const filtered = tickets.filter((ticket) => {
-      const assignedUser = users.find(
-        (u) => u.id_usuario === ticket.id_usuario_asignado
+    // Si hay filtros activos, necesitamos obtener todos los datos para filtrar
+    if (searchTerm || statusValue || typeValue || dateFrom || dateTo) {
+      filterWithPagination(
+        searchTerm,
+        statusValue,
+        typeValue,
+        dateFrom,
+        dateTo
       );
-      const assignedName = assignedUser
-        ? assignedUser.nombre.toLowerCase()
-        : "";
-
-      const clientName = getClientName(
-        ticket.id_cliente_entregable
-      ).toLowerCase();
-
-      const matchesSearch =
-        !searchTerm ||
-        ticket.titulo.toLowerCase().includes(searchTerm) ||
-        ticket.id_ticket.toString().toLowerCase().includes(searchTerm) ||
-        assignedName.includes(searchTerm) ||
-        clientName.includes(searchTerm);
-
-      // Manejar filtro de estado especial para "completed"
-      let matchesStatus = true;
-      if (statusValue === "completed") {
-        matchesStatus =
-          ticket.estado === "delivered" || ticket.estado === "approved";
-      } else {
-        matchesStatus = !statusValue || ticket.estado === statusValue;
-      }
-
-      const matchesType = !typeValue || ticket.categoria === typeValue;
-
-      let matchesDate = true;
-      const ticketDate = new Date(ticket.fecha_limite);
-
-      if (dateFrom && dateTo) {
-        matchesDate = ticketDate >= dateFrom && ticketDate <= dateTo;
-      } else if (dateFrom) {
-        matchesDate = ticketDate >= dateFrom;
-      } else if (dateTo) {
-        matchesDate = ticketDate <= dateTo;
-      }
-
-      return matchesSearch && matchesStatus && matchesType && matchesDate;
-    });
-
-    console.log("✅ Tickets filtrados:", filtered.length, "de", tickets.length);
-
-    // ASEGURAR que renderOrders existe antes de llamarla
-    if (typeof renderOrders === "function") {
-      renderOrders(filtered);
     } else {
-      console.log("❌ Función renderOrders no disponible");
-      // Como respaldo, intentar renderizar directamente
-      if (
-        typeof renderTableView === "function" &&
-        typeof renderGridView === "function"
-      ) {
-        renderTableView(filtered);
-        renderGridView(filtered);
-      }
+      // Si no hay filtros, usar paginación normal
+      fetchTickets(1, itemsPerPage);
     }
   }
+
   // Funciones auxiliares
   function getTypeName(type) {
     const types = {
