@@ -2033,3 +2033,44 @@ body {
   #orderTableBody tr .action-buttons * {
     pointer-events: auto;
   }
+
+  .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all var(--transition-speed);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+}
+
+.toggle-password:hover {
+    opacity: 1;
+    background-color: var(--light-color);
+    color: var(--primary-color);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.toggle-password:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.password-input {
+    padding-right: 52px !important;
+}
+
+.input-with-icon input:focus + .toggle-password {
+    color: var(--primary-color);
+    opacity: 0.8;
+}

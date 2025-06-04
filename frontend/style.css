@@ -17,6 +17,7 @@ a {
   color: #646cff;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
@@ -76,18 +77,23 @@ h1 {
   0% {
     transform: translate(0, 0) rotate(0deg) scale(1);
   }
+
   20% {
     transform: translate(30vw, -25vh) rotate(20deg) scale(0.9);
   }
+
   40% {
     transform: translate(-20vw, 30vh) rotate(40deg) scale(1.1);
   }
+
   60% {
     transform: translate(-35vw, -20vh) rotate(20deg) scale(0.95);
   }
+
   80% {
     transform: translate(25vw, 25vh) rotate(-30deg) scale(1.05);
   }
+
   100% {
     transform: translate(0, 0) rotate(0deg) scale(1);
   }
@@ -127,12 +133,76 @@ body::after {
     opacity: 0.4;
     transform: translate(-50%, -50%) scale(1);
   }
+
   50% {
     opacity: 0.6;
     transform: translate(-50%, -50%) scale(1.1);
   }
+
   100% {
     opacity: 0.4;
     transform: translate(-50%, -50%) scale(0.9);
   }
+}
+
+/* ========================================
+   MEJORAS PARA EL BOTÓN DE CONTRASEÑA
+   ======================================== */
+
+/* CORRECCIÓN PARA EL BOTÓN DE CONTRASEÑA */
+.toggle-password {
+  position: absolute !important;
+  right: 20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: transparent !important;
+  /* Siempre transparente */
+  border: none !important;
+  color: #1F2937 !important;
+  opacity: 0.6 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  /* Sin padding para centrar mejor */
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.toggle-password:hover {
+  opacity: 1 !important;
+  background: transparent !important;
+  /* Mantener transparente en hover */
+  color: #8B5CF6 !important;
+  /* Solo cambiar color del icono */
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
+.toggle-password:active {
+  transform: translateY(-50%) scale(0.95) !important;
+}
+
+/* Centrar específicamente el icono dentro del botón */
+.toggle-password i {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  font-size: 16px !important;
+  /* Tamaño específico del icono */
+}
+
+/* AJUSTES PARA EL INPUT DE CONTRASEÑA */
+.input-with-icon input.password-input {
+  padding-right: 52px !important;
+}
+
+.input-with-icon input:focus+.toggle-password {
+  color: #8B5CF6 !important;
+  opacity: 0.8 !important;
 }
