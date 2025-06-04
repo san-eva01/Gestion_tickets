@@ -5,34 +5,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Configuración de Supabase
   const supabaseUrl = "https://onbgqjndemplsgxdaltr.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw";
+  const supabaseKey =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYmdxam5kZW1wbHNneGRhbHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MTcxMTMsImV4cCI6MjA1OTA5MzExM30.HnBHKLOu7yY5H9xHyqeCV0S45fghKfgyGrL12oDRXWw";
 
   // Usar la librería global de Supabase
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  // Agrega esto al inicio de tu archivo JS, después de crear el cliente Supabase
+  const STORAGE_BUCKET = "ticket-attachments";
 
-// Agrega esto al inicio de tu archivo JS, después de crear el cliente Supabase
-const STORAGE_BUCKET = 'ticket-attachments';
+  // Función para configurar el bucket (ejecutar una sola vez)
+  async function setupStorageBucket() {
+    try {
+      const { data, error } = await supabase.storage.createBucket(
+        STORAGE_BUCKET,
+        {
+          public: false,
+          allowedMimeTypes: ["image/*", "application/pdf"],
+          fileSizeLimit: 5, // 5MB
+        }
+      );
 
-// Función para configurar el bucket (ejecutar una sola vez)
-async function setupStorageBucket() {
-  try {
-    const { data, error } = await supabase.storage.createBucket(STORAGE_BUCKET, {
-      public: false,
-      allowedMimeTypes: ['image/*', 'application/pdf'],
-      fileSizeLimit: 5 // 5MB
-    });
-    
-    if (error && error.message !== 'Bucket already exists') throw error;
-    console.log('Bucket configurado correctamente');
-  } catch (error) {
-    console.error('Error configurando el bucket:', error);
+      if (error && error.message !== "Bucket already exists") throw error;
+      console.log("Bucket configurado correctamente");
+    } catch (error) {
+      console.error("Error configurando el bucket:", error);
+    }
   }
-}
 
-// Ejecutar esta función una vez para crear el bucket
- setupStorageBucket();
-
+  // Ejecutar esta función una vez para crear el bucket
+  setupStorageBucket();
 
   // Elementos del DOM
   const ordersGrid = document.getElementById("ordersGrid");
@@ -53,9 +55,10 @@ async function setupStorageBucket() {
     document.getElementById("viewOrderModal")
   );
   const deleteConfirmModal = new bootstrap.Modal(
-    document.getElementById("deleteConfirmModal"), {
-      backdrop: 'static',
-      keyboard: false
+    document.getElementById("deleteConfirmModal"),
+    {
+      backdrop: "static",
+      keyboard: false,
     }
   );
 
@@ -64,6 +67,143 @@ async function setupStorageBucket() {
   let users = [];
   let clients = [];
   let currentUser = null;
+  let currentPage = 1;
+  let itemsPerPage = 10;
+  let totalPages = 1;
+  let totalItems = 0;
+  let allTickets = [];
+  let filteredTickets = [];
+
+  function getPagination(page, size) {
+    const limit = size ? +size : 10;
+    const from = page ? (page - 1) * limit : 0;
+    const to = page ? from + size - 1 : size - 1;
+    return { from, to, limit };
+  }
+
+  function updatePaginationInfo() {
+    const paginationInfoElements =
+      document.querySelectorAll(".pagination-info");
+    const prevButtons = document.querySelectorAll(
+      ".pagination-btn:first-child"
+    );
+    const nextButtons = document.querySelectorAll(".pagination-btn:last-child");
+
+    // Actualizar texto de información
+    paginationInfoElements.forEach((element) => {
+      element.textContent = `Página ${currentPage} de ${totalPages} (${totalItems} tickets total)`;
+    });
+
+    // Actualizar estado de botones
+    prevButtons.forEach((btn) => {
+      btn.disabled = currentPage <= 1;
+      btn.style.opacity = currentPage <= 1 ? "0.5" : "1";
+      btn.style.cursor = currentPage <= 1 ? "not-allowed" : "pointer";
+    });
+
+    nextButtons.forEach((btn) => {
+      btn.disabled = currentPage >= totalPages;
+      btn.style.opacity = currentPage >= totalPages ? "0.5" : "1";
+      btn.style.cursor = currentPage >= totalPages ? "not-allowed" : "pointer";
+    });
+  }
+
+  function goToPreviousPage() {
+    if (currentPage > 1) {
+      fetchTickets(currentPage - 1, itemsPerPage);
+    }
+  }
+
+  function goToNextPage() {
+    if (currentPage < totalPages) {
+      fetchTickets(currentPage + 1, itemsPerPage);
+    }
+  }
+
+  async function filterWithPagination(
+    searchTerm,
+    statusValue,
+    typeValue,
+    dateFrom,
+    dateTo
+  ) {
+    try {
+      // Construir la query con filtros
+      let query = supabase
+        .from("ticket")
+        .select("*", { count: "exact" })
+        .order("fecha_creacion", { ascending: false });
+
+      // Aplicar filtros a la query
+      if (statusValue === "completed") {
+        query = query.in("estado", ["delivered", "approved"]);
+      } else if (statusValue) {
+        query = query.eq("estado", statusValue);
+      }
+
+      if (typeValue) {
+        query = query.eq("categoria", typeValue);
+      }
+
+      if (dateFrom && dateTo) {
+        query = query
+          .gte("fecha_limite", dateFrom.toISOString().split("T")[0])
+          .lte("fecha_limite", dateTo.toISOString().split("T")[0]);
+      } else if (dateFrom) {
+        query = query.gte("fecha_limite", dateFrom.toISOString().split("T")[0]);
+      } else if (dateTo) {
+        query = query.lte("fecha_limite", dateTo.toISOString().split("T")[0]);
+      }
+
+      // Aplicar paginación
+      const { from, to } = getPagination(currentPage, itemsPerPage);
+      query = query.range(from, to);
+
+      const { data, count, error } = await query;
+
+      if (error) throw error;
+
+      // Filtrar por texto en el frontend (porque incluye datos de usuarios)
+      let filteredData = data || [];
+
+      if (searchTerm) {
+        filteredData = filteredData.filter((ticket) => {
+          const assignedUser = users.find(
+            (u) => u.id_usuario === ticket.id_usuario_asignado
+          );
+          const assignedName = assignedUser
+            ? assignedUser.nombre.toLowerCase()
+            : "";
+          const clientName = getClientName(
+            ticket.id_cliente_entregable
+          ).toLowerCase();
+
+          return (
+            ticket.titulo.toLowerCase().includes(searchTerm) ||
+            ticket.id_ticket.toString().toLowerCase().includes(searchTerm) ||
+            assignedName.includes(searchTerm) ||
+            clientName.includes(searchTerm)
+          );
+        });
+      }
+
+      tickets = filteredData;
+      totalItems = count;
+      totalPages = Math.ceil(totalItems / itemsPerPage);
+
+      updatePaginationInfo();
+      renderOrders(filteredData);
+    } catch (error) {
+      console.error("Error al filtrar tickets:", error);
+      showAlert(`Error al filtrar tickets: ${error.message}`, "danger");
+    }
+  }
+
+  function changePageSize(newSize) {
+    itemsPerPage = newSize;
+    currentPage = 1; // Resetear a la primera página
+    fetchTickets(1, itemsPerPage);
+  }
 
   function checkAndApplyURLFilters() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -283,9 +423,11 @@ async function setupStorageBucket() {
   }
 
   // Event listener adicional para el botón Cancelar
-  document.querySelector('#deleteConfirmModal .btn-secondary')?.addEventListener('click', function() {
-    deleteConfirmModal.hide();
-  });
+  document
+    .querySelector("#deleteConfirmModal .btn-secondary")
+    ?.addEventListener("click", function () {
+      deleteConfirmModal.hide();
+    });
 
   if (document.getElementById("editOrderBtn")) {
     document
@@ -338,13 +480,29 @@ async function setupStorageBucket() {
     });
   });
 
+  document.querySelectorAll(".pagination-btn").forEach((btn, index) => {
+    btn.addEventListener("click", function () {
+      if (this.disabled) return;
+
+      // Los botones pares (0, 2, 4...) son "anterior", los impares (1, 3, 5...) son "siguiente"
+      if (index % 2 === 0) {
+        goToPreviousPage();
+      } else {
+        goToNextPage();
+      }
+    });
+  });
+
   // Funciones globales para los botones de acción
-  window.editTicket = function(ticketId) {
+  window.editTicket = function (ticketId) {
     const ticket = tickets.find((t) => t.id_ticket === ticketId);
 
     if (!ticket) return;
 
-    if (currentUser.rol !== "Admin" && ticket.id_creador !== currentUser.id_usuario) {
+    if (
+      currentUser.rol !== "Admin" &&
+      ticket.id_creador !== currentUser.id_usuario
+    ) {
       showAlert("No tienes permiso para editar este ticket", "warning");
       return;
     }
@@ -352,12 +510,15 @@ async function setupStorageBucket() {
     showOrderModal(ticketId);
   };
 
-  window.deleteTicket = function(ticketId) {
+  window.deleteTicket = function (ticketId) {
     const ticket = tickets.find((t) => t.id_ticket === ticketId);
 
     if (!ticket) return;
 
-    if (currentUser.rol !== "Admin" && ticket.id_creador !== currentUser.id_usuario) {
+    if (
+      currentUser.rol !== "Admin" &&
+      ticket.id_creador !== currentUser.id_usuario
+    ) {
       showAlert("No tienes permiso para eliminar este ticket", "warning");
       return;
     }
@@ -378,7 +539,7 @@ async function setupStorageBucket() {
     await fetchClients();
 
     // Ahora cargar los tickets después de tener usuarios y clientes
-    await fetchTickets();
+    await fetchTickets(1, itemsPerPage);
     checkAndApplyURLFilters();
 
     populateAssigneeDropdown();
@@ -425,21 +586,37 @@ async function setupStorageBucket() {
     }
   }
 
-  async function fetchTickets() {
+  async function fetchTickets(page = 1, pageSize = itemsPerPage) {
     try {
+      currentPage = page;
+      itemsPerPage = pageSize;
+
+      // Primero obtenemos el conteo total
+      const { count, error: countError } = await supabase
+        .from("ticket")
+        .select("*", { count: "exact", head: true });
+
+      if (countError) throw countError;
+
+      totalItems = count;
+      totalPages = Math.ceil(totalItems / itemsPerPage);
+
+      // Luego obtenemos los datos paginados
+      const { from, to } = getPagination(page, pageSize);
+
       const { data, error } = await supabase
         .from("ticket")
         .select("*")
-        .order("fecha_creacion", { ascending: false });
+        .order("fecha_creacion", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
       tickets = data || [];
+      filteredTickets = [...tickets]; // Inicializar filteredTickets
 
-      // CAMBIO: Solo renderizar después de confirmar que tenemos usuarios cargados
-      if (users.length > 0) {
-        renderOrders();
-      }
+      updatePaginationInfo();
+      renderOrders();
     } catch (error) {
       console.error("Error al obtener tickets:", error);
       showAlert(`Error al cargar tickets: ${error.message}`, "danger");
@@ -486,41 +663,47 @@ async function setupStorageBucket() {
   }
 
   function renderTableView(tickets) {
-  if (!orderTableBody) return;
+    if (!orderTableBody) return;
 
-  orderTableBody.innerHTML = "";
+    orderTableBody.innerHTML = "";
 
-  if (tickets.length === 0) {
-    orderTableBody.innerHTML = `
+    if (tickets.length === 0) {
+      orderTableBody.innerHTML = `
       <tr>
         <td colspan="8" class="text-center py-4">No se encontraron tickets que coincidan con su búsqueda</td>
       </tr>
     `;
-    return;
-  }
+      return;
+    }
 
-  tickets.forEach((ticket) => {
-    const assignedUser = users.find(
-      (u) => u.id_usuario === ticket.id_usuario_asignado
-    );
-    const row = document.createElement("tr");
-    row.innerHTML = `
+    tickets.forEach((ticket) => {
+      const assignedUser = users.find(
+        (u) => u.id_usuario === ticket.id_usuario_asignado
+      );
+      const row = document.createElement("tr");
+      row.innerHTML = `
       <td>${ticket.id_ticket}</td>
       <td>${ticket.titulo}</td>
-      <td><span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span></td>
+      <td><span class="type-badge ${ticket.categoria}">${getTypeName(
+        ticket.categoria
+      )}</span></td>
       <td>
         <div class="user-info">
           ${
             assignedUser
               ? `
-              <div class="user-avatar">${getUserInitials(assignedUser.nombre)}</div>
+              <div class="user-avatar">${getUserInitials(
+                assignedUser.nombre
+              )}</div>
               <span>${assignedUser.nombre}</span>
             `
               : '<span class="text-muted">No asignado</span>'
           }
         </div>
       </td>
-      <td><span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span></td>
+      <td><span class="status-badge ${ticket.estado}">${getStatusName(
+        ticket.estado
+      )}</span></td>
       <td>${formatDate(ticket.fecha_creacion)}</td>
       <td>${formatDate(ticket.fecha_limite)}</td>
       <td>
@@ -528,28 +711,32 @@ async function setupStorageBucket() {
           <button class="btn-icon view" data-id="${ticket.id_ticket}">
             <i class="fas fa-eye"></i>
           </button>
-          <button class="btn-icon edit" onclick="editTicket(${ticket.id_ticket})">
+          <button class="btn-icon edit" onclick="editTicket(${
+            ticket.id_ticket
+          })">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="btn-icon delete" onclick="deleteTicket(${ticket.id_ticket})">
+          <button class="btn-icon delete" onclick="deleteTicket(${
+            ticket.id_ticket
+          })">
             <i class="fas fa-trash"></i>
           </button>
         </div>
       </td>
     `;
-    
-    // Agregar evento click a la fila
-    row.addEventListener('click', (e) => {
-      // Evitar que se active si se hizo click en los botones de acción
-      if (e.target.closest('.action-buttons')) {
-        return;
-      }
-      viewOrderDetails(ticket.id_ticket);
+
+      // Agregar evento click a la fila
+      row.addEventListener("click", (e) => {
+        // Evitar que se active si se hizo click en los botones de acción
+        if (e.target.closest(".action-buttons")) {
+          return;
+        }
+        viewOrderDetails(ticket.id_ticket);
+      });
+
+      orderTableBody.appendChild(row);
     });
-    
-    orderTableBody.appendChild(row);
-  });
-}
+  }
 
   function renderGridView(tickets) {
     if (!ordersGrid) return;
@@ -573,18 +760,26 @@ async function setupStorageBucket() {
         <div class="order-card-header">
           <h3 class="order-card-title">${ticket.titulo}</h3>
           <div class="order-card-meta">
-            <span class="status-badge ${ticket.estado}">${getStatusName(ticket.estado)}</span>
-            <span class="type-badge ${ticket.categoria}">${getTypeName(ticket.categoria)}</span>
+            <span class="status-badge ${ticket.estado}">${getStatusName(
+        ticket.estado
+      )}</span>
+            <span class="type-badge ${ticket.categoria}">${getTypeName(
+        ticket.categoria
+      )}</span>
           </div>
         </div>
         <div class="order-card-body">
           <div class="order-info-item">
             <span class="order-info-label">Cliente:</span>
-            <span class="order-info-value">${getClientName(ticket.id_cliente_entregable)}</span>
+            <span class="order-info-value">${getClientName(
+              ticket.id_cliente_entregable
+            )}</span>
           </div>
           <div class="order-info-item">
             <span class="order-info-label">Fecha Límite:</span>
-            <span class="order-info-value">${formatDate(ticket.fecha_limite)}</span>
+            <span class="order-info-value">${formatDate(
+              ticket.fecha_limite
+            )}</span>
           </div>
           <div class="order-info-item">
             <span class="order-info-label">Asignado a:</span>
@@ -595,7 +790,9 @@ async function setupStorageBucket() {
           <div class="order-info-item">
             <span class="order-info-label">Prioridad:</span>
             <span class="order-info-value">
-              <span class="priority-badge ${ticket.priority || "medium"}">${getPriorityName(ticket.priority || "medium")}</span>
+              <span class="priority-badge ${
+                ticket.priority || "medium"
+              }">${getPriorityName(ticket.priority || "medium")}</span>
             </span>
           </div>
         </div>
@@ -605,10 +802,14 @@ async function setupStorageBucket() {
             <button class="btn-icon view" data-id="${ticket.id_ticket}">
               <i class="fas fa-eye"></i>
             </button>
-            <button class="btn-icon edit" onclick="editTicket(${ticket.id_ticket})">
+            <button class="btn-icon edit" onclick="editTicket(${
+              ticket.id_ticket
+            })">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn-icon delete" onclick="deleteTicket(${ticket.id_ticket})">
+            <button class="btn-icon delete" onclick="deleteTicket(${
+              ticket.id_ticket
+            })">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -648,7 +849,10 @@ async function setupStorageBucket() {
       const day = document.createElement("div");
       day.className = "calendar-day";
 
-      const currentDateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      const currentDateString = `${year}-${String(month + 1).padStart(
+        2,
+        "0"
+      )}-${String(i).padStart(2, "0")}`;
 
       const today = new Date();
       const isToday =
@@ -716,12 +920,15 @@ async function setupStorageBucket() {
     const orderClientSelect = document.getElementById("orderClient");
     if (!orderClientSelect) return;
 
-    orderClientSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
+    orderClientSelect.innerHTML =
+      '<option value="">Seleccionar cliente...</option>';
 
     clients.forEach((client) => {
       const option = document.createElement("option");
       option.value = client.id_cliente;
-      option.textContent = `${client.nombre} ${client.tipo ? `(${client.tipo})` : ""}`;
+      option.textContent = `${client.nombre} ${
+        client.tipo ? `(${client.tipo})` : ""
+      }`;
       orderClientSelect.appendChild(option);
     });
   }
@@ -769,10 +976,12 @@ async function setupStorageBucket() {
         document.getElementById("orderId").value = ticket.id_ticket;
         document.getElementById("orderTitle").value = ticket.titulo;
         document.getElementById("orderType").value = ticket.categoria;
-        document.getElementById("assignedTo").value = ticket.id_usuario_asignado || "";
+        document.getElementById("assignedTo").value =
+          ticket.id_usuario_asignado || "";
         document.getElementById("orderStatus").value = ticket.estado;
         document.getElementById("priority").value = ticket.priority || "medium";
-        document.getElementById("orderClient").value = ticket.id_cliente_entregable || "";
+        document.getElementById("orderClient").value =
+          ticket.id_cliente_entregable || "";
         document.getElementById("orderDeadline").value = ticket.fecha_limite;
         document.getElementById("orderDescription").value = ticket.descripcion;
 
@@ -787,167 +996,193 @@ async function setupStorageBucket() {
   }
 
   async function handleOrderSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!currentUser) {
-    showAlert("No se pudo identificar al usuario actual", "danger");
-    return;
-  }
-
-  const ticketId = document.getElementById("orderId").value;
-  const assignedToId = document.getElementById("assignedTo").value;
-  const fileInput = document.getElementById("fileAttachments");
-  const files = fileInput.files;
-
-  // Subir archivos primero si hay alguno
-  let attachments = [];
-  if (files.length > 0) {
-    try {
-      const uploadPromises = [];
-      
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const filePath = `${ticketId || 'new'}/${fileName}`;
-        
-        uploadPromises.push(
-          supabase.storage
-            .from(STORAGE_BUCKET)
-            .upload(filePath, file)
-        );
-      }
-      
-      const results = await Promise.all(uploadPromises);
-      attachments = results.map(result => {
-        if (result.error) throw result.error;
-        const { data } = supabase.storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(result.data.path);
-        return data.publicUrl;
-      });
-    } catch (error) {
-      console.error("Error subiendo archivos:", error);
-      showAlert(`Error subiendo archivos: ${error.message}`, "danger");
+    if (!currentUser) {
+      showAlert("No se pudo identificar al usuario actual", "danger");
       return;
     }
-  }
 
-  const ticketData = {
-    titulo: document.getElementById("orderTitle").value,
-    categoria: document.getElementById("orderType").value,
-    id_usuario_asignado: assignedToId || null,
-    estado: document.getElementById("orderStatus").value,
-    fecha_limite: document.getElementById("orderDeadline").value,
-    id_cliente_entregable: parseInt(document.getElementById("orderClient").value) || null,
-    descripcion: document.getElementById("orderDescription").value,
-    id_creador: currentUser.id_usuario,
-    adjuntos: attachments
-  };
+    const ticketId = document.getElementById("orderId").value;
+    const assignedToId = document.getElementById("assignedTo").value;
+    const fileInput = document.getElementById("fileAttachments");
+    const files = fileInput.files;
 
-  try {
-    if (ticketId) {
-      // Para edición, combinar con archivos existentes
-      const { data: existingTicket, error: fetchError } = await supabase
-        .from("ticket")
-        .select("adjuntos")
-        .eq("id_ticket", ticketId)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      
-      if (existingTicket.adjuntos && existingTicket.adjuntos.length > 0) {
-        ticketData.adjuntos = [...existingTicket.adjuntos, ...attachments];
+    // Subir archivos primero si hay alguno
+    let attachments = [];
+    if (files.length > 0) {
+      try {
+        const uploadPromises = [];
+
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 9)}.${fileExt}`;
+          const filePath = `${ticketId || "new"}/${fileName}`;
+
+          uploadPromises.push(
+            supabase.storage.from(STORAGE_BUCKET).upload(filePath, file)
+          );
+        }
+
+        const results = await Promise.all(uploadPromises);
+        attachments = results.map((result) => {
+          if (result.error) throw result.error;
+          const { data } = supabase.storage
+            .from(STORAGE_BUCKET)
+            .getPublicUrl(result.data.path);
+          return data.publicUrl;
+        });
+      } catch (error) {
+        console.error("Error subiendo archivos:", error);
+        showAlert(`Error subiendo archivos: ${error.message}`, "danger");
+        return;
+      }
+    }
+
+    const ticketData = {
+      titulo: document.getElementById("orderTitle").value,
+      categoria: document.getElementById("orderType").value,
+      id_usuario_asignado: assignedToId || null,
+      estado: document.getElementById("orderStatus").value,
+      fecha_limite: document.getElementById("orderDeadline").value,
+      id_cliente_entregable:
+        parseInt(document.getElementById("orderClient").value) || null,
+      descripcion: document.getElementById("orderDescription").value,
+      id_creador: currentUser.id_usuario,
+      adjuntos: attachments,
+    };
+
+    try {
+      if (ticketId) {
+        // Para edición, combinar con archivos existentes
+        const { data: existingTicket, error: fetchError } = await supabase
+          .from("ticket")
+          .select("adjuntos")
+          .eq("id_ticket", ticketId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        if (existingTicket.adjuntos && existingTicket.adjuntos.length > 0) {
+          ticketData.adjuntos = [...existingTicket.adjuntos, ...attachments];
+        }
+
+        const { data, error } = await supabase
+          .from("ticket")
+          .update(ticketData)
+          .eq("id_ticket", ticketId)
+          .select();
+
+        if (error) throw error;
+
+        showAlert("Ticket actualizado con éxito", "success");
+      } else {
+        const { data, error } = await supabase
+          .from("ticket")
+          .insert([
+            {
+              ...ticketData,
+              fecha_creacion: new Date().toISOString(),
+            },
+          ])
+          .select();
+
+        if (error) throw error;
+
+        showAlert("Ticket creado con éxito", "success");
       }
 
-      const { data, error } = await supabase
-        .from("ticket")
-        .update(ticketData)
-        .eq("id_ticket", ticketId)
-        .select();
-
-      if (error) throw error;
-
-      showAlert("Ticket actualizado con éxito", "success");
-    } else {
-      const { data, error } = await supabase
-        .from("ticket")
-        .insert([
-          {
-            ...ticketData,
-            fecha_creacion: new Date().toISOString(),
-          },
-        ])
-        .select();
-
-      if (error) throw error;
-
-      showAlert("Ticket creado con éxito", "success");
+      orderModal.hide();
+      await fetchTickets();
+      if (
+        document.querySelector(".tab-btn.active").getAttribute("data-view") ===
+        "calendar"
+      ) {
+        renderCalendar();
+      }
+    } catch (error) {
+      console.error("Error al guardar ticket:", error);
+      showAlert(`Error al guardar ticket: ${error.message}`, "danger");
     }
-
-    orderModal.hide();
-    await fetchTickets();
-    if (
-      document.querySelector(".tab-btn.active").getAttribute("data-view") === "calendar"
-    ) {
-      renderCalendar();
-    }
-  } catch (error) {
-    console.error("Error al guardar ticket:", error);
-    showAlert(`Error al guardar ticket: ${error.message}`, "danger");
   }
-}
 
   async function viewOrderDetails(ticketId) {
-  try {
-    const { data: ticket, error } = await supabase
-      .from("ticket")
-      .select("*")
-      .eq("id_ticket", ticketId)
-      .single();
+    try {
+      const { data: ticket, error } = await supabase
+        .from("ticket")
+        .select("*")
+        .eq("id_ticket", ticketId)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    if (!ticket) {
-      showAlert("Ticket no encontrado", "warning");
-      return;
-    }
+      if (!ticket) {
+        showAlert("Ticket no encontrado", "warning");
+        return;
+      }
 
-    const assignedUser = users.find(
-      (u) => u.id_usuario === ticket.id_usuario_asignado
-    );
-    const creatorUser = users.find((u) => u.id_usuario === ticket.id_creador);
+      const assignedUser = users.find(
+        (u) => u.id_usuario === ticket.id_usuario_asignado
+      );
+      const creatorUser = users.find((u) => u.id_usuario === ticket.id_creador);
 
-    document.getElementById("viewOrderId").textContent = ticket.id_ticket;
-    document.getElementById("viewOrderTitle").textContent = ticket.titulo;
-    document.getElementById("viewOrderType").textContent = getTypeName(ticket.categoria);
-    document.getElementById("viewOrderType").className = `type-badge ${ticket.categoria}`;
-    document.getElementById("viewOrderStatus").textContent = getStatusName(ticket.estado);
-    document.getElementById("viewOrderStatus").className = `status-badge ${ticket.estado}`;
-    document.getElementById("viewOrderPriority").textContent = getPriorityName(ticket.priority || "medium");
-    document.getElementById("viewOrderPriority").className = `priority-badge ${ticket.priority || "medium"}`;
-    document.getElementById("viewOrderClient").textContent = getClientName(ticket.id_cliente_entregable);
-    document.getElementById("viewAssignedTo").textContent = assignedUser ? assignedUser.nombre : "No asignado";
-    document.getElementById("viewCreatedBy").textContent = creatorUser ? creatorUser.nombre : "Sistema";
-    document.getElementById("viewCreatedDate").textContent = formatDate(ticket.fecha_creacion);
-    document.getElementById("viewDeadline").textContent = formatDate(ticket.fecha_limite);
-    document.getElementById("viewDescription").textContent = ticket.descripcion;
+      document.getElementById("viewOrderId").textContent = ticket.id_ticket;
+      document.getElementById("viewOrderTitle").textContent = ticket.titulo;
+      document.getElementById("viewOrderType").textContent = getTypeName(
+        ticket.categoria
+      );
+      document.getElementById(
+        "viewOrderType"
+      ).className = `type-badge ${ticket.categoria}`;
+      document.getElementById("viewOrderStatus").textContent = getStatusName(
+        ticket.estado
+      );
+      document.getElementById(
+        "viewOrderStatus"
+      ).className = `status-badge ${ticket.estado}`;
+      document.getElementById("viewOrderPriority").textContent =
+        getPriorityName(ticket.priority || "medium");
+      document.getElementById(
+        "viewOrderPriority"
+      ).className = `priority-badge ${ticket.priority || "medium"}`;
+      document.getElementById("viewOrderClient").textContent = getClientName(
+        ticket.id_cliente_entregable
+      );
+      document.getElementById("viewAssignedTo").textContent = assignedUser
+        ? assignedUser.nombre
+        : "No asignado";
+      document.getElementById("viewCreatedBy").textContent = creatorUser
+        ? creatorUser.nombre
+        : "Sistema";
+      document.getElementById("viewCreatedDate").textContent = formatDate(
+        ticket.fecha_creacion
+      );
+      document.getElementById("viewDeadline").textContent = formatDate(
+        ticket.fecha_limite
+      );
+      document.getElementById("viewDescription").textContent =
+        ticket.descripcion;
 
-    // Mostrar adjuntos
-    const attachmentsList = document.getElementById("viewAttachmentsList");
-    attachmentsList.innerHTML = "";
-    
-    if (ticket.adjuntos && ticket.adjuntos.length > 0) {
-      ticket.adjuntos.forEach((url, index) => {
-        const fileExt = url.split('.').pop().toLowerCase();
-        const attachmentItem = document.createElement("div");
-        attachmentItem.className = "attachment-item";
-        
-        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExt)) {
-          // Es una imagen
-          attachmentItem.innerHTML = `
+      // Mostrar adjuntos
+      const attachmentsList = document.getElementById("viewAttachmentsList");
+      attachmentsList.innerHTML = "";
+
+      if (ticket.adjuntos && ticket.adjuntos.length > 0) {
+        ticket.adjuntos.forEach((url, index) => {
+          const fileExt = url.split(".").pop().toLowerCase();
+          const attachmentItem = document.createElement("div");
+          attachmentItem.className = "attachment-item";
+
+          if (["jpg", "jpeg", "png", "gif"].includes(fileExt)) {
+            // Es una imagen
+            attachmentItem.innerHTML = `
             <div class="attachment-preview">
-              <img src="${url}" alt="Adjunto ${index + 1}" class="img-thumbnail">
+              <img src="${url}" alt="Adjunto ${
+              index + 1
+            }" class="img-thumbnail">
               <div class="attachment-actions">
                 <a href="${url}" target="_blank" class="btn btn-sm btn-primary">
                   <i class="fas fa-expand"></i> Ver
@@ -958,12 +1193,14 @@ async function setupStorageBucket() {
               </div>
             </div>
             <div class="attachment-info">
-              <span class="attachment-name">Imagen ${index + 1}.${fileExt}</span>
+              <span class="attachment-name">Imagen ${
+                index + 1
+              }.${fileExt}</span>
             </div>
           `;
-        } else if (fileExt === 'pdf') {
-          // Es un PDF
-          attachmentItem.innerHTML = `
+          } else if (fileExt === "pdf") {
+            // Es un PDF
+            attachmentItem.innerHTML = `
             <div class="attachment-preview">
               <i class="fas fa-file-pdf pdf-icon"></i>
               <div class="attachment-actions">
@@ -979,9 +1216,9 @@ async function setupStorageBucket() {
               <span class="attachment-name">Documento ${index + 1}.pdf</span>
             </div>
           `;
-        } else {
-          // Otro tipo de archivo
-          attachmentItem.innerHTML = `
+          } else {
+            // Otro tipo de archivo
+            attachmentItem.innerHTML = `
             <div class="attachment-preview">
               <i class="fas fa-file-alt"></i>
               <div class="attachment-actions">
@@ -994,23 +1231,29 @@ async function setupStorageBucket() {
               </div>
             </div>
             <div class="attachment-info">
-              <span class="attachment-name">Archivo ${index + 1}.${fileExt}</span>
+              <span class="attachment-name">Archivo ${
+                index + 1
+              }.${fileExt}</span>
             </div>
           `;
-        }
-        
-        attachmentsList.appendChild(attachmentItem);
-      });
-    } else {
-      attachmentsList.innerHTML = '<p class="text-muted">No hay archivos adjuntos</p>';
-    }
+          }
 
-    viewOrderModal.show();
-  } catch (error) {
-    console.error("Error al obtener detalles del ticket:", error);
-    showAlert(`Error al cargar detalles del ticket: ${error.message}`, "danger");
+          attachmentsList.appendChild(attachmentItem);
+        });
+      } else {
+        attachmentsList.innerHTML =
+          '<p class="text-muted">No hay archivos adjuntos</p>';
+      }
+
+      viewOrderModal.show();
+    } catch (error) {
+      console.error("Error al obtener detalles del ticket:", error);
+      showAlert(
+        `Error al cargar detalles del ticket: ${error.message}`,
+        "danger"
+      );
+    }
   }
-}
 
   async function confirmDeleteOrder() {
     const ticketId = document.getElementById("deleteOrderId").textContent;
@@ -1052,38 +1295,19 @@ async function setupStorageBucket() {
     const dateTo =
       dateToFilter && dateToFilter.value ? new Date(dateToFilter.value) : null;
 
-    const filtered = tickets.filter((ticket) => {
-      const assignedUser = users.find(
-        (u) => u.id_usuario === ticket.id_usuario_asignado
+    // Si hay filtros activos, necesitamos obtener todos los datos para filtrar
+    if (searchTerm || statusValue || typeValue || dateFrom || dateTo) {
+      filterWithPagination(
+        searchTerm,
+        statusValue,
+        typeValue,
+        dateFrom,
+        dateTo
       );
-      const assignedName = assignedUser ? assignedUser.nombre.toLowerCase() : "";
-      const clientName = getClientName(ticket.id_cliente_entregable).toLowerCase();
-
-      const matchesSearch =
-        !searchTerm ||
-        ticket.titulo.toLowerCase().includes(searchTerm) ||
-        ticket.id_ticket.toString().toLowerCase().includes(searchTerm) ||
-        assignedName.includes(searchTerm) ||
-        clientName.includes(searchTerm);
-
-      const matchesStatus = !statusValue || ticket.estado === statusValue;
-      const matchesType = !typeValue || ticket.categoria === typeValue;
-
-      let matchesDate = true;
-      const ticketDate = new Date(ticket.fecha_limite);
-
-      if (dateFrom && dateTo) {
-        matchesDate = ticketDate >= dateFrom && ticketDate <= dateTo;
-      } else if (dateFrom) {
-        matchesDate = ticketDate >= dateFrom;
-      } else if (dateTo) {
-        matchesDate = ticketDate <= dateTo;
-      }
-
-      return matchesSearch && matchesStatus && matchesType && matchesDate;
-    });
-
-    renderOrders(filtered);
+    } else {
+      // Si no hay filtros, usar paginación normal
+      fetchTickets(1, itemsPerPage);
+    }
   }
 
   // Funciones auxiliares
