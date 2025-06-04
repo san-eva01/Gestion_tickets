@@ -2103,13 +2103,13 @@ body {
 
 
 .btn-skyblue {
-    background-color: #87CEEB;  /* Azul cielo */
-    border-color: #87CEEB;
+    background-color: #c384f7;  /* Azul cielo */
+    border-color: #c384f7;
     color: white;
 }
 
 .btn-skyblue:hover {
-    background-color: #6CB4EE;  /* Un tono un poco más oscuro para el hover */
-    border-color: #6CB4EE;
+    background-color: #8c4fd1;  /* Un tono un poco más oscuro para el hover */
+    border-color: #8c4fd1;
     color: white;
 }
