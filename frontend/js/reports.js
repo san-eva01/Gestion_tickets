@@ -555,6 +555,10 @@ function exportToPDF() {
 
     const doc = new jsPDF();
     doc.setFont("helvetica");
+
+     // Agregar logo en la esquina superior izquierda
+const imgData = 'data:image/png;base64,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'; // tu código base64 completo aquí
+doc.addImage(imgData, 'PNG', 10, 5, 30, 15);
     
     // Configuración inicial del documento
     const isClientReport = !!currentReportData.client;
@@ -708,7 +712,7 @@ function exportToPDF() {
         ];
 
     // Tabla de tickets
-    doc.autoTable({
+   doc.autoTable({
         startY: doc.autoTable.previous.finalY + 20,
         head: [columns.map(col => col.header)],
         body: tableData,
@@ -721,31 +725,13 @@ function exportToPDF() {
         margin: { left: 14 },
         styles: { 
             fontSize: 7,
-            cellPadding: 2
+            cellPadding: 2,
+            textColor: 0 // Todos los textos en negro
         },
         columnStyles: columns.reduce((acc, col) => {
             acc[col.dataKey] = { cellWidth: col.cellWidth };
             return acc;
-        }, {}),
-        didDrawCell: (data) => {
-            const timeColumnIndex = isClientReport ? 7 : 6;
-            if (data.column.index === timeColumnIndex && data.cell.raw) {
-                // Colorear la celda de tiempo según su estado
-                const text = data.cell.raw;
-                if (text.includes("antes")) {
-                    doc.setTextColor(0, 128, 0); // Verde
-                } else if (text.includes("tarde") || text.includes("retraso")) {
-                    doc.setTextColor(255, 0, 0); // Rojo
-                } else if (text.includes("hoy")) {
-                    doc.setTextColor(255, 165, 0); // Naranja
-                } else {
-                    doc.setTextColor(0); // Negro
-                }
-                doc.text(text, data.cell.x + 2, data.cell.y + 5);
-                doc.setTextColor(0); // Restaurar color negro
-                return false; // Evitar dibujo automático
-            }
-        }
+        }, {})
     });
     
     // Pie de página
