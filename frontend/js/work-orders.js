@@ -266,62 +266,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Función para mostrar badge de filtro activo
-  function showActiveFilterBadge(statusParam) {
-    // Crear badge si no existe
-    let badge = document.getElementById("activeFilterBadge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.id = "activeFilterBadge";
-      badge.className = "active-filter-badge";
-
-      const filterControls = document.querySelector(".filter-controls");
-      if (filterControls) {
-        filterControls.insertBefore(badge, filterControls.firstChild);
-      }
-    }
-
-    // Configurar contenido del badge
-    let badgeText = "";
-    let badgeIcon = "fas fa-filter";
-
-    switch (statusParam) {
-      case "in-progress":
-        badgeText = "Filtro: En Proceso";
-        break;
-      case "review":
-        badgeText = "Filtro: En Revisión";
-        break;
-      case "completed":
-        badgeText = "Filtro: Completados";
-        break;
-      default:
-        badgeText = "Filtro aplicado desde Dashboard";
-    }
-
-    badge.innerHTML = `
-      <div class="badge-content">
-          <i class="${badgeIcon}"></i>
-          <span>${badgeText}</span>
-          <button class="clear-filter-btn" type="button" title="Limpiar filtro">
-              <i class="fas fa-times"></i>
-          </button>
-      </div>
-  `;
-
-    // IMPORTANTE: Agregar el event listener directamente al botón
-    const clearBtn = badge.querySelector(".clear-filter-btn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        clearDashboardFilter();
-      });
-    }
-
-    badge.style.display = "flex";
-  }
-
   // Función para limpiar el filtro del dashboard
   function clearDashboardFilter() {
     // Limpiar parámetros de URL
@@ -542,7 +486,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (completedOption) {
         completedOption.remove();
       }
-      
+
       // Resetear el filtro a "Todos los estados"
       statusFilter.value = "";
     }
@@ -563,6 +507,62 @@ document.addEventListener("DOMContentLoaded", function () {
 
     showAlert("Filtros eliminados", "info");
   };
+
+  // También actualiza la función showActiveFilterBadge para asegurar que el evento click funcione:
+  function showActiveFilterBadge(statusParam) {
+    // Crear badge si no existe
+    let badge = document.getElementById("activeFilterBadge");
+    if (!badge) {
+      badge = document.createElement("div");
+      badge.id = "activeFilterBadge";
+      badge.className = "active-filter-badge";
+
+      const filterControls = document.querySelector(".filter-controls");
+      if (filterControls) {
+        filterControls.insertBefore(badge, filterControls.firstChild);
+      }
+    }
+
+    // Configurar contenido del badge
+    let badgeText = "";
+    let badgeIcon = "fas fa-filter";
+
+    switch (statusParam) {
+      case "in-progress":
+        badgeText = "Filtro: En Proceso";
+        break;
+      case "review":
+        badgeText = "Filtro: En Revisión";
+        break;
+      case "completed":
+        badgeText = "Filtro: Completados";
+        break;
+      default:
+        badgeText = "Filtro aplicado desde Dashboard";
+    }
+
+    badge.innerHTML = `
+      <div class="badge-content">
+          <i class="${badgeIcon}"></i>
+          <span>${badgeText}</span>
+          <button class="clear-filter-btn" type="button" title="Limpiar filtro">
+              <i class="fas fa-times"></i>
+          </button>
+      </div>
+  `;
+
+    // IMPORTANTE: Agregar el event listener directamente al botón
+    const clearBtn = badge.querySelector(".clear-filter-btn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearDashboardFilter();
+      });
+    }
+
+    badge.style.display = "flex";
+  }
 
   window.deleteTicket = function (ticketId) {
     const ticket = tickets.find((t) => t.id_ticket === ticketId);
