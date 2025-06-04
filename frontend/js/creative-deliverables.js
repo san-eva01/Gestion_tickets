@@ -806,61 +806,122 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Función original viewDeliverable (mantener para compatibilidad)
+  // Función original viewDeliverable (corregida para mostrar archivos correctos)
   window.viewDeliverable = function (deliverableId) {
-    const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
+    const deliverable = mockDeliverables.find(d => d.id === deliverableId);
     if (!deliverable) return;
 
     document.getElementById("viewDeliverableId").textContent = deliverable.id;
-    document.getElementById("viewDeliverableTitle").textContent =
-      deliverable.title;
-    document.getElementById("viewDeliverableOrder").textContent =
-      deliverable.order_id;
-    document.getElementById("viewDeliverableStatus").textContent =
-      getStatusName(deliverable.status);
-    document.getElementById(
-      "viewDeliverableStatus"
-    ).className = `status-badge ${deliverable.status}`;
-    document.getElementById("viewDeliverableClient").textContent =
-      deliverable.client;
-    document.getElementById("viewDeliverableSubmitted").textContent =
-      formatDate(deliverable.submitted_date);
+    document.getElementById("viewDeliverableTitle").textContent = deliverable.title;
+    document.getElementById("viewDeliverableOrder").textContent = deliverable.order_id;
+    document.getElementById("viewDeliverableStatus").textContent = getStatusName(deliverable.status);
+    document.getElementById("viewDeliverableStatus").className = `status-badge ${deliverable.status}`;
+    document.getElementById("viewDeliverableClient").textContent = deliverable.client;
+    document.getElementById("viewDeliverableSubmitted").textContent = formatDate(deliverable.submitted_date);
 
     if (deliverable.reviewed_date) {
-      document.getElementById("viewDeliverableReviewed").textContent =
-        formatDate(deliverable.reviewed_date);
+      document.getElementById("viewDeliverableReviewed").textContent = formatDate(deliverable.reviewed_date);
       document.getElementById("viewReviewedDateGroup").style.display = "block";
     } else {
       document.getElementById("viewReviewedDateGroup").style.display = "none";
     }
 
+    // CÓDIGO CORREGIDO: Buscar tanto en entregables como en adjuntos
     const filesList = document.getElementById("viewDeliverableFiles");
-    filesList.innerHTML = "";
+    filesList.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando archivos...</div>';
 
-    if (deliverable.files && deliverable.files.length > 0) {
-      deliverable.files.forEach((file) => {
-        const icon = getFileIcon(file.type);
-        const fileItem = document.createElement("div");
-        fileItem.className = "attachment-item";
-        fileItem.innerHTML = `
-                    <i class="${icon}"></i>
-                    <a href="#" onclick="downloadFile('${file.name}'); return false;">${file.name}</a>
-                `;
-        filesList.appendChild(fileItem);
-      });
-    }
+    const ticketId = deliverable.id.replace("DEL-", "");
+
+    // Cargar archivos de la base de datos
+    (async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from("ticket")
+          .select("entregables, adjuntos")
+          .eq("id_ticket", ticketId)
+          .single();
+
+        if (error) throw error;
+
+        console.log("Datos del ticket:", data); // Para debug
+
+        // Buscar archivos tanto en entregables como en adjuntos
+        let archivos = [];
+        
+        if (data?.entregables && data.entregables.length > 0) {
+          archivos = [...archivos, ...data.entregables];
+        }
+        
+        if (data?.adjuntos && data.adjuntos.length > 0) {
+          archivos = [...archivos, ...data.adjuntos];
+        }
+
+        console.log("Archivos encontrados:", archivos); // Para debug
+
+        if (!archivos.length) {
+          filesList.innerHTML = '<p class="text-muted text-center">No hay archivos adjuntos</p>';
+          return;
+        }
+
+        filesList.innerHTML = "";
+
+        archivos.forEach((url, index) => {
+          const filename = decodeURIComponent(url.split("/").pop());
+          const ext = filename.split(".").pop().toLowerCase();
+          const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext);
+          const isPDF = ext === "pdf";
+
+          const fileItem = document.createElement("div");
+          fileItem.className = "attachment-item mb-3 p-3 border rounded bg-light";
+
+          const preview = isImage
+            ? `<img src="${url}" alt="${filename}" class="img-fluid rounded shadow-sm" style="max-height: 200px;">`
+            : isPDF
+              ? `<embed src="${url}" type="application/pdf" width="100%" height="200px" class="rounded shadow-sm">`
+              : `<div class="text-center py-3"><i class="${getFileIcon(ext)} fa-3x text-primary"></i></div>`;
+
+          fileItem.innerHTML = `
+            <div class="row align-items-center">
+              <div class="col-md-4 text-center mb-3 mb-md-0">${preview}</div>
+              <div class="col-md-8">
+                <div class="d-flex flex-column justify-content-between h-100">
+                  <div class="mb-2">
+                    <i class="${getFileIcon(ext)} text-primary me-2"></i>
+                    <strong>${filename}</strong>
+                  </div>
+                  <div>
+                    <a href="${url}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                      <i class="fas fa-eye me-1"></i> Ver
+                    </a>
+                    <a href="#" onclick="forceDownload('${url}', '${filename}'); return false;" class="btn btn-outline-secondary btn-sm">
+                      <i class="fas fa-download me-1"></i> Descargar
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          filesList.appendChild(fileItem);
+        });
+      } catch (err) {
+        console.error("Error al cargar archivos:", err);
+        filesList.innerHTML = `
+          <div class="alert alert-danger mb-0">
+            <i class="fas fa-exclamation-circle me-2"></i>Error al cargar los archivos: ${err.message}
+          </div>`;
+      }
+    })();
 
     const feedbackSection = document.getElementById("viewFeedbackSection");
     if (deliverable.feedback) {
-      document.getElementById("viewFeedback").textContent =
-        deliverable.feedback;
+      document.getElementById("viewFeedback").textContent = deliverable.feedback;
       feedbackSection.style.display = "block";
     } else {
       feedbackSection.style.display = "none";
     }
 
-    const commentsContainer = document.getElementById(
-      "viewDeliverableComments"
-    );
+    const commentsContainer = document.getElementById("viewDeliverableComments");
     commentsContainer.innerHTML = "";
 
     if (deliverable.comments && deliverable.comments.length > 0) {
@@ -871,12 +932,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="comment-avatar">${comment.user.avatar}</div>
                     <div class="comment-content">
                         <div class="comment-header">
-                            <span class="comment-author">${
-                              comment.user.name
-                            }</span>
-                            <span class="comment-date">${formatDateTime(
-                              comment.date
-                            )}</span>
+                            <span class="comment-author">${comment.user.name}</span>
+                            <span class="comment-date">${formatDateTime(comment.date)}</span>
                         </div>
                         <p class="comment-text">${comment.text}</p>
                     </div>
@@ -884,14 +941,21 @@ document.addEventListener("DOMContentLoaded", function () {
         commentsContainer.appendChild(commentElement);
       });
     } else {
-      commentsContainer.innerHTML =
-        '<p class="text-center text-muted">No hay comentarios</p>';
+      commentsContainer.innerHTML = '<p class="text-center text-muted">No hay comentarios</p>';
     }
 
-    const viewDeliverableModal = new bootstrap.Modal(
-      document.getElementById("viewDeliverableModal")
-    );
+    const viewDeliverableModal = new bootstrap.Modal(document.getElementById("viewDeliverableModal"));
     viewDeliverableModal.show();
+  };
+
+  window.forceDownload = function (url, fileName) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Función global para vista expandida
