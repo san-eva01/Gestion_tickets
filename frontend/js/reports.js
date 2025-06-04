@@ -14,6 +14,13 @@ document.addEventListener("DOMContentLoaded", function () {
   const reportTableBody = document.getElementById("reportTableBody");
   const exportReportBtn = document.getElementById("exportReportBtn");
 
+
+  const clientSelect = document.getElementById("clientSelect");
+  const clientDateRangeStart = document.getElementById("clientDateRangeStart");
+  const clientDateRangeEnd = document.getElementById("clientDateRangeEnd");
+  const generateClientReportBtn = document.getElementById("generateClientReportBtn");
+  let realClients = [];
+
   let mockUsers = [];
   let mockOrders = [];
   let currentReportData = null;
@@ -24,6 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
     populateCreativeSelect();
     setupDatePickers();
     setupEventListeners();
+    populateClientSelect();
 
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -71,9 +79,9 @@ document.addEventListener("DOMContentLoaded", function () {
         type: ticket.categoria,
         assigned_to: ticket.usuario
           ? {
-              id: ticket.id_usuario_asignado,
-              name: ticket.usuario.nombre,
-            }
+            id: ticket.id_usuario_asignado,
+            name: ticket.usuario.nombre,
+          }
           : null,
         status: ticket.estado,
         created_date: ticket.fecha_creacion?.split("T")[0],
@@ -112,6 +120,44 @@ document.addEventListener("DOMContentLoaded", function () {
       .toUpperCase();
   }
 
+  async function loadClients() {
+    try {
+      const { data: clientsData, error: clientsError } = await supabaseClient
+        .from("cliente")
+        .select("*")
+        .order("nombre", { ascending: true });
+
+      if (clientsError) throw clientsError;
+
+      realClients = clientsData.map((client) => ({
+        id: client.id_cliente,
+        name: client.nombre,
+        type: client.tipo,
+        email: client.email,
+        phone: client.telefono,
+        creationDate: client.fecha_creacion
+      }));
+
+      console.log("Clientes cargados:", realClients.length);
+    } catch (error) {
+      console.error("Error al cargar clientes:", error);
+    }
+  }
+
+  // Agrega esta función para poblar el select de clientes
+  function populateClientSelect() {
+    clientSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
+
+    realClients.forEach((client) => {
+      const option = document.createElement("option");
+      option.value = client.id;
+      option.textContent = client.name;
+      clientSelect.appendChild(option);
+    });
+  }
+
+
+
   function populateCreativeSelect() {
     creativeSelect.innerHTML =
       '<option value="">Seleccionar creativo...</option>';
@@ -126,10 +172,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  function setupDatePickers() {}
+  function setupDatePickers() { }
 
   function setupEventListeners() {
     generateReportBtn.addEventListener("click", generateReport);
+    generateClientReportBtn.addEventListener("click", generateClientReport); // Nueva función
     exportReportBtn.addEventListener("click", exportToPDF);
   }
 
@@ -203,6 +250,99 @@ document.addEventListener("DOMContentLoaded", function () {
     showAlert("Reporte generado con éxito", "success");
   }
 
+
+
+async function generateClientReport() {
+    const clientId = parseInt(clientSelect.value);
+    const startDate = clientDateRangeStart.value ? new Date(clientDateRangeStart.value) : null;
+    const endDate = clientDateRangeEnd.value ? new Date(clientDateRangeEnd.value) : null;
+
+    if (!clientId) {
+        showAlert("Por favor seleccione un cliente", "warning");
+        return;
+    }
+
+    if (!startDate || !endDate) {
+        showAlert("Por favor seleccione un rango de fechas", "warning");
+        return;
+    }
+
+    const client = realClients.find(c => c.id === clientId);
+    if (!client) {
+        showAlert("Cliente no encontrado", "error");
+        return;
+    }
+
+    // Cargar tickets del cliente
+    try {
+        const { data: ticketsData, error: ticketsError } = await supabaseClient
+            .from("ticket")
+            .select(`
+                *,
+                usuario:id_usuario_asignado(nombre),
+                cliente:id_cliente_entregable(nombre)
+            `)
+            .eq('id_cliente_entregable', clientId)
+            .gte('fecha_creacion', startDate.toISOString())
+            .lte('fecha_creacion', endDate.toISOString());
+
+        if (ticketsError) throw ticketsError;
+
+        const clientOrders = ticketsData.map((ticket) => ({
+            id: `TKT-${ticket.id_ticket}`,
+            title: ticket.titulo,
+            type: ticket.categoria,
+            assigned_to: ticket.usuario
+                ? {
+                    id: ticket.id_usuario_asignado,
+                    name: ticket.usuario.nombre,
+                }
+                : null,
+            status: ticket.estado,
+            created_date: ticket.fecha_creacion?.split("T")[0],
+            deadline: ticket.fecha_limite?.split("T")[0],
+            completed_date:
+                ticket.estado === "delivered" || ticket.estado === "approved"
+                    ? ticket.fecha_limite?.split("T")[0]
+                    : null,
+            client: ticket.cliente?.nombre || "Sin cliente",
+            priority: ticket.prioridad || "medium",
+        }));
+
+        if (clientOrders.length === 0) {
+            showAlert("No hay tickets para este cliente en el rango de fechas seleccionado", "warning");
+            return;
+        }
+
+        reportContainer.style.display = "block";
+
+        document.getElementById("reportCreativeName").textContent = client.name;
+        document.getElementById("reportDateRange").textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+
+        currentReportData = {
+            client: client,
+            startDate: startDate,
+            endDate: endDate,
+            ...generateReportData(clientOrders),
+            orders: clientOrders
+        };
+
+        renderReportTable(clientOrders);
+
+        document.getElementById("totalTickets").textContent = clientOrders.length;
+        document.getElementById("completedTickets").textContent = currentReportData.completedCount;
+        document.getElementById("inProgressTickets").textContent = currentReportData.inProgressCount;
+        document.getElementById("delayedTickets").textContent = currentReportData.delayedCount;
+
+        showAlert("Reporte de cliente generado con éxito", "success");
+
+    } catch (error) {
+        console.error("Error al generar reporte de cliente:", error);
+        showAlert("Error al generar reporte de cliente", "error");
+    }
+}
+
+
   function generateReportData(orders) {
     const statusCounts = {
       assigned: 0,
@@ -228,7 +368,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (order.status === "delivered" || order.status === "approved") {
         completedCount++;
-        
+
         // Calcular entregas a tiempo/tardías
         const completedDate = new Date(order.completed_date || order.deadline);
         const deadlineDate = new Date(order.deadline);
@@ -237,7 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
           lateDeliveries++;
         }
-        
+
         // Calificación promedio (simulada ya que no hay datos reales)
         if (order.status === "approved") {
           totalRating += 4 + Math.random(); // Simular calificación entre 4 y 5
@@ -258,7 +398,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-    const averageRating = ratedDeliveries > 0 
+    const averageRating = ratedDeliveries > 0
       ? (totalRating / ratedDeliveries).toFixed(1)
       : "N/A";
 
@@ -407,54 +547,79 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => alert.remove(), 5000);
   }
 
-  function exportToPDF() {
+function exportToPDF() {
     if (!currentReportData) {
-      showAlert("Primero debe generar un reporte para exportarlo", "warning");
-      return;
+        showAlert("Primero debe generar un reporte para exportarlo", "warning");
+        return;
     }
 
     const doc = new jsPDF();
-    
-    // Configuración del documento
     doc.setFont("helvetica");
+    
+    // Configuración inicial del documento
+    const isClientReport = !!currentReportData.client;
+    const reportTitle = isClientReport ? "Reporte de Cliente" : "Reporte de Productividad";
+    const entityName = isClientReport ? currentReportData.client.name : currentReportData.creative.name;
     
     // Logo y título
     doc.setFontSize(20);
     doc.setTextColor(40);
-    doc.text("Reporte de Productividad", 105, 20, { align: "center" });
+    doc.text(reportTitle, 105, 20, { align: "center" });
     
-    // Información del creativo
+    // Información del reporte
     doc.setFontSize(12);
-    doc.text(`Creativo: ${currentReportData.creative.name}`, 14, 30);
-    doc.text(`Período: ${formatDate(currentReportData.startDate)} - ${formatDate(currentReportData.endDate)}`, 14, 36);
+    
+    if (isClientReport) {
+        // Información específica del cliente
+        doc.text(`Cliente: ${currentReportData.client.name}`, 14, 30);
+        doc.text(`Tipo: ${currentReportData.client.type || 'No especificado'}`, 14, 36);
+        doc.text(`Email: ${currentReportData.client.email}`, 14, 42);
+        doc.text(`Teléfono: ${currentReportData.client.phone || 'No especificado'}`, 14, 48);
+        doc.text(`Período: ${formatDate(currentReportData.startDate)} - ${formatDate(currentReportData.endDate)}`, 14, 54);
+    } else {
+        // Información para reporte de creativo
+        doc.text(`Creativo: ${currentReportData.creative.name}`, 14, 30);
+        doc.text(`Período: ${formatDate(currentReportData.startDate)} - ${formatDate(currentReportData.endDate)}`, 14, 36);
+    }
     
     // Estadísticas generales
     doc.setFontSize(14);
     doc.setTextColor(50, 100, 150);
-    doc.text("Estadísticas de Productividad", 14, 48);
+    doc.text(isClientReport ? "Resumen de Actividad" : "Estadísticas de Productividad", 14, isClientReport ? 66 : 48);
     
     doc.setFontSize(10);
     doc.setTextColor(0);
     
     // Tabla de estadísticas
-    doc.autoTable({
-      startY: 55,
-      head: [['Métrica', 'Valor']],
-      body: [
+    const statsBody = [
         ['Tickets Totales', currentReportData.orders.length],
-        ['Tareas Completadas', currentReportData.completedCount],
-        ['Tareas en Proceso', currentReportData.inProgressCount],
-        ['Tareas Rechazadas', currentReportData.statusDistribution.rejected || 0],
-        ['Entregas a Tiempo', currentReportData.onTimeDeliveries],
-        ['Entregas con Retraso', currentReportData.lateDeliveries],
-        ['Calificación Promedio', currentReportData.averageRating]
-      ],
-      theme: 'grid',
-      headStyles: {
-        fillColor: [50, 100, 150],
-        textColor: 255
-      },
-      margin: { left: 14 }
+        ['Tickets Completados', currentReportData.completedCount],
+        ['Tickets en Proceso', currentReportData.inProgressCount],
+        ['Tickets Retrasados', currentReportData.delayedCount],
+        ['Tickets Rechazados', currentReportData.statusDistribution.rejected || 0]
+    ];
+
+    if (isClientReport) {
+        statsBody.push(
+            ['Entregas a Tiempo', currentReportData.onTimeDeliveries],
+            ['Entregas con Retraso', currentReportData.lateDeliveries]
+        );
+    } else {
+        statsBody.push(
+            ['Calificación Promedio', currentReportData.averageRating]
+        );
+    }
+
+    doc.autoTable({
+        startY: isClientReport ? 73 : 55,
+        head: [['Métrica', 'Valor']],
+        body: statsBody,
+        theme: 'grid',
+        headStyles: {
+            fillColor: [50, 100, 150],
+            textColor: 255
+        },
+        margin: { left: 14 }
     });
     
     // Detalle de tickets
@@ -464,85 +629,150 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Preparar datos para la tabla
     const tableData = currentReportData.orders.map(order => {
-      let tiempo = "";
-      
-      if (order.status === "delivered" || order.status === "approved") {
-        const completedDate = new Date(order.completed_date || order.deadline);
-        const deadlineDate = new Date(order.deadline);
-        const diffTime = deadlineDate - completedDate;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        let tiempo = "";
+        let statusClass = "";
         
-        if (diffDays >= 0) {
-          tiempo = `Entregado ${diffDays} día(s) antes`;
+        if (order.status === "delivered" || order.status === "approved") {
+            const completedDate = new Date(order.completed_date || order.deadline);
+            const deadlineDate = new Date(order.deadline);
+            const diffTime = deadlineDate - completedDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays >= 0) {
+                tiempo = `Entregado ${diffDays} día(s) antes`;
+                statusClass = "green";
+            } else {
+                tiempo = `Entregado ${Math.abs(diffDays)} día(s) tarde`;
+                statusClass = "red";
+            }
         } else {
-          tiempo = `Entregado ${Math.abs(diffDays)} día(s) tarde`;
+            const today = new Date();
+            const deadlineDate = new Date(order.deadline);
+            const diffTime = deadlineDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 0) {
+                tiempo = `${diffDays} día(s) restante(s)`;
+                statusClass = "black";
+            } else if (diffDays === 0) {
+                tiempo = "Vence hoy";
+                statusClass = "orange";
+            } else {
+                tiempo = `${Math.abs(diffDays)} día(s) de retraso`;
+                statusClass = "red";
+            }
         }
-      } else {
-        const today = new Date();
-        const deadlineDate = new Date(order.deadline);
-        const diffTime = deadlineDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (diffDays > 0) {
-          tiempo = `${diffDays} día(s) restante(s)`;
-        } else if (diffDays === 0) {
-          tiempo = "Vence hoy";
-        } else {
-          tiempo = `${Math.abs(diffDays)} día(s) de retraso`;
-        }
-      }
-      
-      return [
-        order.id,
-        order.title,
-        getTypeName(order.type),
-        getStatusName(order.status),
-        formatDate(order.created_date),
-        formatDate(order.deadline),
-        tiempo
-      ];
+        return isClientReport 
+            ? [
+                order.id,
+                order.title,
+                getTypeName(order.type),
+                getStatusName(order.status),
+                order.assigned_to?.name || "Sin asignar",
+                formatDate(order.created_date),
+                formatDate(order.deadline),
+                tiempo
+            ]
+            : [
+                order.id,
+                order.title,
+                getTypeName(order.type),
+                getStatusName(order.status),
+                formatDate(order.created_date),
+                formatDate(order.deadline),
+                tiempo
+            ];
     });
     
+    // Configuración de columnas según tipo de reporte
+    const columns = isClientReport
+        ? [
+            { header: 'ID', dataKey: '0', cellWidth: 15 },
+            { header: 'Título', dataKey: '1', cellWidth: 30 },
+            { header: 'Categoría', dataKey: '2', cellWidth: 20 },
+            { header: 'Estado', dataKey: '3', cellWidth: 20 },
+            { header: 'Asignado a', dataKey: '4', cellWidth: 25 },
+            { header: 'Fecha Creación', dataKey: '5', cellWidth: 20 },
+            { header: 'Fecha Límite', dataKey: '6', cellWidth: 20 },
+            { header: 'Tiempo', dataKey: '7', cellWidth: 25 }
+        ]
+        : [
+            { header: 'ID', dataKey: '0', cellWidth: 20 },
+            { header: 'Título', dataKey: '1', cellWidth: 30 },
+            { header: 'Categoría', dataKey: '2', cellWidth: 25 },
+            { header: 'Estado', dataKey: '3', cellWidth: 25 },
+            { header: 'Fecha Creación', dataKey: '4', cellWidth: 25 },
+            { header: 'Fecha Límite', dataKey: '5', cellWidth: 25 },
+            { header: 'Tiempo', dataKey: '6', cellWidth: 30 }
+        ];
+
     // Tabla de tickets
     doc.autoTable({
-      startY: doc.autoTable.previous.finalY + 20,
-      head: [['ID', 'Título', 'Categoría', 'Estado', 'Fecha Creación', 'Fecha Límite', 'Tiempo']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [50, 100, 150],
-        textColor: 255
-      },
-      margin: { left: 14 },
-      styles: { fontSize: 8 },
-      columnStyles: {
-        0: { cellWidth: 20 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 25 },
-        5: { cellWidth: 25 },
-        6: { cellWidth: 30 }
-      }
+        startY: doc.autoTable.previous.finalY + 20,
+        head: [columns.map(col => col.header)],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+            fillColor: [50, 100, 150],
+            textColor: 255,
+            fontSize: 8
+        },
+        margin: { left: 14 },
+        styles: { 
+            fontSize: 7,
+            cellPadding: 2
+        },
+        columnStyles: columns.reduce((acc, col) => {
+            acc[col.dataKey] = { cellWidth: col.cellWidth };
+            return acc;
+        }, {}),
+        didDrawCell: (data) => {
+            const timeColumnIndex = isClientReport ? 7 : 6;
+            if (data.column.index === timeColumnIndex && data.cell.raw) {
+                // Colorear la celda de tiempo según su estado
+                const text = data.cell.raw;
+                if (text.includes("antes")) {
+                    doc.setTextColor(0, 128, 0); // Verde
+                } else if (text.includes("tarde") || text.includes("retraso")) {
+                    doc.setTextColor(255, 0, 0); // Rojo
+                } else if (text.includes("hoy")) {
+                    doc.setTextColor(255, 165, 0); // Naranja
+                } else {
+                    doc.setTextColor(0); // Negro
+                }
+                doc.text(text, data.cell.x + 2, data.cell.y + 5);
+                doc.setTextColor(0); // Restaurar color negro
+                return false; // Evitar dibujo automático
+            }
+        }
     });
     
     // Pie de página
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(10);
-      doc.setTextColor(150);
-      doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: "center" });
-      doc.text(`Generado el ${formatDate(new Date())}`, 105, 290, { align: "center" });
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: "center" });
+        doc.text(`Generado el ${formatDate(new Date())}`, 105, 290, { align: "center" });
     }
     
     // Guardar el PDF
-    doc.save(`Reporte_${currentReportData.creative.name}_${formatDate(currentReportData.startDate)}_a_${formatDate(currentReportData.endDate)}.pdf`);
+    const fileName = isClientReport 
+        ? `Reporte_Cliente_${currentReportData.client.name}_${formatDate(currentReportData.startDate)}_a_${formatDate(currentReportData.endDate)}.pdf`
+        : `Reporte_${currentReportData.creative.name}_${formatDate(currentReportData.startDate)}_a_${formatDate(currentReportData.endDate)}.pdf`;
     
+    doc.save(fileName);
     showAlert("Reporte exportado como PDF", "success");
-  }
+}
 
   loadRealData().then(() => {
     populateCreativeSelect();
-  });
+    return loadClients(); // Nueva función
+}).then(() => {
+    populateClientSelect();
+}).catch(error => {
+    console.error("Error al cargar datos:", error);
+});
 });
