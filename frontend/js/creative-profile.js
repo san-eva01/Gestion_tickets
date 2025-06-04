@@ -8,18 +8,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let currentUser = null;
 
-  document
-    .getElementById("editProfileBtn")
-    .addEventListener("click", enableEditMode);
-  document
-    .getElementById("cancelEditBtn")
-    .addEventListener("click", disableEditMode);
-  document
-    .getElementById("profileForm")
-    .addEventListener("submit", saveProfile);
-  document
-    .getElementById("passwordForm")
-    .addEventListener("submit", changePassword);
+  // CORRECCIÓN: Verificar si los elementos existen antes de agregar event listeners
+  const editProfileBtn = document.getElementById("editProfileBtn");
+  const cancelEditBtn = document.getElementById("cancelEditBtn");
+  const profileForm = document.getElementById("profileForm");
+  const passwordForm = document.getElementById("passwordForm");
+
+  // Solo agregar event listeners si los elementos existen
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener("click", enableEditMode);
+  }
+  
+  if (cancelEditBtn) {
+    cancelEditBtn.addEventListener("click", disableEditMode);
+  }
+  
+  if (profileForm) {
+    profileForm.addEventListener("submit", saveProfile);
+  }
+  
+  if (passwordForm) {
+    passwordForm.addEventListener("submit", changePassword);
+  }
 
   function enableEditMode() {
     const formInputs = document.querySelectorAll(
@@ -29,9 +39,14 @@ document.addEventListener("DOMContentLoaded", function () {
       input.disabled = false;
     });
 
-    document.getElementById("saveProfileBtnContainer").style.display = "block";
+    const saveProfileBtnContainer = document.getElementById("saveProfileBtnContainer");
+    if (saveProfileBtnContainer) {
+      saveProfileBtnContainer.style.display = "block";
+    }
 
-    document.getElementById("editProfileBtn").style.display = "none";
+    if (editProfileBtn) {
+      editProfileBtn.style.display = "none";
+    }
   }
 
   // AGREGAR ESTAS FUNCIONES
@@ -155,11 +170,18 @@ document.addEventListener("DOMContentLoaded", function () {
       input.disabled = true;
     });
 
-    document.getElementById("saveProfileBtnContainer").style.display = "none";
+    const saveProfileBtnContainer = document.getElementById("saveProfileBtnContainer");
+    if (saveProfileBtnContainer) {
+      saveProfileBtnContainer.style.display = "none";
+    }
 
-    document.getElementById("editProfileBtn").style.display = "block";
+    if (editProfileBtn) {
+      editProfileBtn.style.display = "block";
+    }
 
-    document.getElementById("profileForm").reset();
+    if (profileForm) {
+      profileForm.reset();
+    }
   }
 
   function saveProfile(e) {
@@ -172,22 +194,25 @@ document.addEventListener("DOMContentLoaded", function () {
   function changePassword(e) {
     e.preventDefault();
 
-    const currentPassword = document.getElementById("currentPassword").value;
-    const newPassword = document.getElementById("newPassword").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
+    const currentPassword = document.getElementById("currentPassword");
+    const newPassword = document.getElementById("newPassword");
+    const confirmPassword = document.getElementById("confirmPassword");
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       showAlert("Por favor complete todos los campos", "warning");
       return;
     }
 
-    if (newPassword !== confirmPassword) {
+    if (newPassword.value !== confirmPassword.value) {
       showAlert("Las contraseñas nuevas no coinciden", "danger");
       return;
     }
 
     showAlert("Contraseña actualizada con éxito", "success");
-    document.getElementById("passwordForm").reset();
+    
+    if (passwordForm) {
+      passwordForm.reset();
+    }
   }
 
   function showAlert(message, type = "success") {
@@ -205,5 +230,6 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => alert.remove(), 5000);
   }
 
+  // CARGAR EL PERFIL AL INICIALIZAR
   loadUserProfile();
 });
