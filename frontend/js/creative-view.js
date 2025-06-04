@@ -287,7 +287,7 @@ function renderAllTickets() {
             `;
     } else if (task.status === "in-progress") {
       actionButtons = `
-                <button class="btn-warning" onclick="handleDeliveryConfirmation('${task.id}')">
+                <button class="btn btn-skyblue btn-sm" onclick="handleDeliveryConfirmation('${task.id}')">
                     <i class="fas fa-clipboard-check"></i> Entregar
                 </button>
             `;

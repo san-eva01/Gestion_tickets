@@ -2100,3 +2100,16 @@ body {
     color: var(--primary-color);
     opacity: 0.8;
 }
+
+
+.btn-skyblue {
+    background-color: #87CEEB;  /* Azul cielo */
+    border-color: #87CEEB;
+    color: white;
+}
+
+.btn-skyblue:hover {
+    background-color: #6CB4EE;  /* Un tono un poco más oscuro para el hover */
+    border-color: #6CB4EE;
+    color: white;
+}

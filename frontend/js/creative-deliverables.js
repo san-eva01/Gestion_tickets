@@ -965,52 +965,132 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("addDeliverableComment")
     .addEventListener("click", addComment);
 
-  function addComment() {
-    const deliverableId =
-      document.getElementById("viewDeliverableId").textContent;
+async function addComment() {
+    const deliverableId = document.getElementById("viewDeliverableId").textContent;
     const commentText = document.getElementById("newDeliverableComment").value;
 
     if (!commentText.trim()) return;
 
-    const deliverable = mockDeliverables.find((d) => d.id === deliverableId);
-    if (!deliverable) return;
+    // Extraer el ID del ticket del deliverableId (que está en formato "DEL-123")
+    const ticketId = deliverableId.replace("DEL-", "");
+    
+    try {
+        // 1. Obtener los comentarios actuales del ticket
+        const { data: ticketData, error: fetchError } = await supabaseClient
+            .from("ticket")
+            .select("comentarios")
+            .eq("id_ticket", ticketId)
+            .single();
 
-    if (!deliverable.comments) {
-      deliverable.comments = [];
-    }
+        if (fetchError) throw fetchError;
 
-    const newComment = {
-      id: Date.now(),
-      user: { id: 2, name: "Carlos Ruiz", avatar: "CR" },
-      date: new Date().toISOString(),
-      text: commentText,
-    };
+        // 2. Preparar el nuevo comentario (formato simplificado)
+        const newComment = `${currentUser.nombre}\n${commentText}`;
 
-    deliverable.comments.push(newComment);
+        // 3. Actualizar los comentarios en la base de datos
+        let updatedComments = [];
+        
+        // Si ya hay comentarios, los agregamos al array
+        if (ticketData.comentarios && Array.isArray(ticketData.comentarios)) {
+            updatedComments = [...ticketData.comentarios, newComment];
+        } else {
+            // Si no hay comentarios o no es un array, creamos uno nuevo
+            updatedComments = [newComment];
+        }
 
-    const commentsContainer = document.getElementById(
-      "viewDeliverableComments"
-    );
-    const commentElement = document.createElement("div");
-    commentElement.className = "comment";
-    commentElement.innerHTML = `
-            <div class="comment-avatar">${newComment.user.avatar}</div>
+        // 4. Actualizar el ticket en la base de datos
+        const { error: updateError } = await supabaseClient
+            .from("ticket")
+            .update({ comentarios: updatedComments })
+            .eq("id_ticket", ticketId);
+
+        if (updateError) throw updateError;
+
+        // 5. Actualizar la vista (formato simplificado)
+        const commentsContainer = document.getElementById("viewDeliverableComments");
+        const commentElement = document.createElement("div");
+        commentElement.className = "comment";
+        commentElement.innerHTML = `
             <div class="comment-content">
-                <div class="comment-header">
-                    <span class="comment-author">${newComment.user.name}</span>
-                    <span class="comment-date">${formatDateTime(
-                      newComment.date
-                    )}</span>
-                </div>
-                <p class="comment-text">${newComment.text}</p>
+                <p class="comment-text">${newComment}</p>
             </div>
         `;
-    commentsContainer.appendChild(commentElement);
+        commentsContainer.appendChild(commentElement);
 
-    document.getElementById("newDeliverableComment").value = "";
+        // Limpiar el campo de texto
+        document.getElementById("newDeliverableComment").value = "";
 
-    showAlert("Comentario agregado", "success");
-  }
+        showAlert("Comentario agregado correctamente", "success");
+        
+        // Actualizar también el modal expandido si está abierto
+        updateExpandedModalComments(ticketId, updatedComments);
+
+    } catch (error) {
+        console.error("Error al agregar comentario:", error);
+        showAlert("Error al guardar el comentario", "danger");
+    }
+}
+
+// Función auxiliar para actualizar los comentarios en el modal expandido (formato simplificado)
+function updateExpandedModalComments(ticketId, comments) {
+    const expandedModal = document.getElementById("expandedDeliverableModal");
+    if (!expandedModal) return;
+
+    const commentsContainer = expandedModal.querySelector("#expandedCommentsContainer");
+    if (!commentsContainer) return;
+
+    if (comments && comments.length > 0) {
+        commentsContainer.innerHTML = comments.map(comment => {
+            // Verificar si el comentario es string (nuevo formato) o objeto (formato anterior)
+            if (typeof comment === 'string') {
+                return `
+                    <div class="comment mb-3">
+                        <p class="mb-0">${comment}</p>
+                    </div>
+                `;
+            } else {
+                // Mantener compatibilidad con comentarios antiguos
+                return `
+                    <div class="comment mb-3">
+                        <p class="mb-0">${comment.user.name}\n${comment.text}</p>
+                    </div>
+                `;
+            }
+        }).join('');
+    } else {
+        commentsContainer.innerHTML = '<p class="text-muted mb-0">No hay comentarios</p>';
+    }
+}
+
+// Función auxiliar para actualizar los comentarios en el modal expandido
+function updateExpandedModalComments(ticketId, comments) {
+    const expandedModal = document.getElementById("expandedDeliverableModal");
+    if (!expandedModal) return;
+
+    const commentsContainer = expandedModal.querySelector("#expandedCommentsContainer");
+    if (!commentsContainer) return;
+
+    if (comments && comments.length > 0) {
+        commentsContainer.innerHTML = comments.map(comment => `
+            <div class="comment mb-3">
+                <div class="d-flex align-items-start">
+                    <div class="avatar-circle-sm me-2">
+                        ${comment.user.avatar}
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center mb-1">
+                            <strong class="me-2">${comment.user.name}</strong>
+                            <small class="text-muted">${formatDateTime(comment.date)}</small>
+                        </div>
+                        <p class="mb-0">${comment.text}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        commentsContainer.innerHTML = '<p class="text-muted mb-0">No hay comentarios</p>';
+    }
+}
 
   function getFileIcon(fileType) {
     const iconMap = {
